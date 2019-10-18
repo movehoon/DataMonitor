@@ -32,6 +32,7 @@
 enum {
   LED_NONE,
   LED_RUNNING,
+  LED_DISCONNECT_BLE,
 };
 
 BLEServer *pServer = NULL;
@@ -52,8 +53,8 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 void IRAM_ATTR onTimer(){
   // Increment the counter and set the time of ISR
   portENTER_CRITICAL_ISR(&timerMux);
-  
-  digitalWrite(LED_BUILTIN, !ledIndicator.process());
+
+  digitalWrite(LED_BUILTIN, ledIndicator.process());
 
   portEXIT_CRITICAL_ISR(&timerMux);
   // Give a semaphore that we can check in the loop
@@ -66,10 +67,12 @@ void IRAM_ATTR onTimer(){
 class BleServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       deviceConnected = true;
+      ledIndicator.SetBlinkCount(LED_RUNNING);
     };
 
     void onDisconnect(BLEServer* pServer) {
       deviceConnected = false;
+      ledIndicator.SetBlinkCount(LED_DISCONNECT_BLE);
     }
 };
 
@@ -93,6 +96,8 @@ class BleCallbacks: public BLECharacteristicCallbacks {
 void setup() {
   Serial.begin(115200);
   Serial2.begin(115200);
+
+  pinMode(LED_BUILTIN, OUTPUT);
 
   // Create the BLE Device
   BLEDevice::init(BT_NAME);
@@ -126,7 +131,7 @@ void setup() {
   pServer->getAdvertising()->start();
   Serial.println("Waiting a client connection to notify...");
 
-  ledIndicator.SetBlinkCount(LED_RUNNING);
+  ledIndicator.SetBlinkCount(LED_DISCONNECT_BLE);
 
   // ----- Start Timer -----//
   // Create semaphore to inform us when the timer has fired
@@ -179,7 +184,6 @@ void serialEvent () {
 
       pTxCharacteristic->setValue(recv_cmd2, cmd2_index);
       pTxCharacteristic->notify();
-
       Serial.printf("[U]%s\n", recv_cmd2);
 
       cmd2_index = 0;

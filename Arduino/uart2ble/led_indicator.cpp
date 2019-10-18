@@ -28,4 +28,5 @@ bool LedIndicator::process() {
       led_blinking_status = true;
     }
   }
+  return false;
 }
