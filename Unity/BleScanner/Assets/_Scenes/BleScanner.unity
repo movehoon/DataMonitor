@@ -1904,7 +1904,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c0008b2f6abf44a99e5959a0d9077f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  DeviceName: qnode
+  DeviceName: QNODE
   ServiceUUID: A9E90000-194C-4523-A473-5FDF36AA4D20
   LedUUID: A9E90001-194C-4523-A473-5FDF36AA4D20
   BtnUUID: A9E90002-194C-4523-A473-5FDF36AA4D20
@@ -2994,6 +2994,36 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2012652982}
   m_CullTransparentMesh: 0
+--- !u!1 &2013955523
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2013955524}
+  m_Layer: 0
+  m_Name: Program
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2013955524
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013955523}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 393.51083, y: 259.93243, z: -7.118694}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 4
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2016395579
 GameObject:
   m_ObjectHideFlags: 0

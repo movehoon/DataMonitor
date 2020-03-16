@@ -23,7 +23,7 @@ public class BleDevice
 
 public class BleManager : Singleton<BleManager>
 {
-    public string DeviceName = "qnode";
+    public string DeviceName = "QNODE";
     public string ServiceUUID = "A9E90000-194C-4523-A473-5FDF36AA4D20";
     public string LedUUID = "A9E90001-194C-4523-A473-5FDF36AA4D20";
     public string BtnUUID = "A9E90002-194C-4523-A473-5FDF36AA4D20";
@@ -75,6 +75,7 @@ public class BleManager : Singleton<BleManager>
 
     public void Search()
     {
+        DeviceName = "QNODE";
         _device.Clear();
         BluetoothLEHardwareInterface.Initialize(true, false, () =>
         {
@@ -85,6 +86,11 @@ public class BleManager : Singleton<BleManager>
         });
     }
 
+    public void Connect(string device_name)
+    {
+        DeviceName = device_name;
+        Connect();
+    }
     public void Connect()
     {
         StartProcess();
@@ -92,10 +98,34 @@ public class BleManager : Singleton<BleManager>
 
     public void Disconnect()
     {
-        Debug.Log("Disconnect");
-        //SetState(States.Unsubscribe, 0.1f);
-        BluetoothLEHardwareInterface.UnSubscribeCharacteristic(_deviceAddress, ServiceUUID, BtnUUID, null);
-        SetState(States.Disconnect, 4f);
+        Debug.Log("[BleM]Disconnect");
+        _Disconnect();
+    }
+
+    void _Disconnect()
+    {
+        if (_connected)
+        {
+            Debug.Log("[BleM]DisconnectPeripheral");
+            BluetoothLEHardwareInterface.UnSubscribeCharacteristic(_deviceAddress, ServiceUUID, BtnUUID, null);
+            BluetoothLEHardwareInterface.DisconnectPeripheral(_deviceAddress, (address) =>
+            {
+                Debug.Log("[BleM]DeInitialize");
+                BluetoothLEHardwareInterface.DeInitialize(() =>
+                {
+                    _connected = false;
+                    _state = States.None;
+                });
+            });
+        }
+        else
+        {
+            Debug.Log("[BleM]DeInitialize");
+            BluetoothLEHardwareInterface.DeInitialize(() =>
+            {
+                _state = States.None;
+            });
+        }
     }
 
     public bool IsConnectd
@@ -117,7 +147,7 @@ public class BleManager : Singleton<BleManager>
 
     public void OnApplicationQuit()
     {
-        Debug.Log("OnApplicationQuit");
+        Debug.Log("[BleM]OnApplicationQuit");
         Disconnect();
     }
 
@@ -333,8 +363,6 @@ public class BleManager : Singleton<BleManager>
                             // large enough that it will be finished enumerating before you try to subscribe or do any other operations.
                             BluetoothLEHardwareInterface.ConnectToPeripheral(_deviceAddress, null, null, (address, serviceUUID, characteristicUUID) =>
                             {
-                                Debug.Log("Connected...");
-
                                 if (IsEqual(serviceUUID, ServiceUUID))
                                 {
                                     _foundBtnUUID = _foundBtnUUID || IsEqual(characteristicUUID, BtnUUID);
@@ -346,6 +374,8 @@ public class BleManager : Singleton<BleManager>
                                     // before we try to subscribe
                                     if (_foundBtnUUID && _foundLedUUID)
                                     {
+                                        Debug.Log("Connected...");
+
                                         _connected = true;
                                         SetState(States.Subscribe, 2f);
                                     }
@@ -356,22 +386,31 @@ public class BleManager : Singleton<BleManager>
 
                     case States.Subscribe:
                         {
-                            Debug.Log("Subscribing to characteristics...");
+                            Debug.Log("[BleM]Subscribe");
 
                             BluetoothLEHardwareInterface.SubscribeCharacteristicWithDeviceAddress(_deviceAddress, ServiceUUID, BtnUUID, (notifyAddress, notifyCharacteristic) =>
                             {
                                 _state = States.None;
 
+                                Debug.Log("Subscribing to characteristics...");
+
                                 // read the initial state of the button
+                                Debug.Log("notifyAddress:" + notifyAddress);
+                                Debug.Log("notifyCharacteristic:" + notifyCharacteristic);
+                                Debug.Log("_deviceAddress:" + _deviceAddress);
+                                Debug.Log("ServiceUUID:" + ServiceUUID);
+                                Debug.Log("BtnUUID:" + BtnUUID);
                                 BluetoothLEHardwareInterface.ReadCharacteristic(_deviceAddress, ServiceUUID, BtnUUID, (characteristic, bytes) =>
                                 {
                                     string msg = Encoding.Default.GetString(bytes);
                                     Debug.Log("Recv:" + msg);
                                     _recv_message.Add(msg);
-
-//                                    ProcessButton(bytes);
+                                    //if (_recv_message.Count > 1000)
+                                    //{
+                                    //    _recv_message.Clear();
+                                    //}
+                                    //ProcessButton(bytes);
                                 });
-
                             }, (address, characteristicUUID, bytes) =>
                             {
                                 if (_state != States.None)
@@ -385,8 +424,15 @@ public class BleManager : Singleton<BleManager>
                                     _state = States.None;
                                 }
 
-                            // we received some data from the device
-//                            ProcessButton(bytes);
+                                string msg = Encoding.Default.GetString(bytes);
+                                Debug.Log("Recv2:" + msg);
+                                _recv_message.Add(msg);
+                                if (_recv_message.Count > 1000)
+                                {
+                                    _recv_message.Clear();
+                                }
+                                // we received some data from the device
+                                //ProcessButton(bytes);
                             });
                             break;
                         }
@@ -404,25 +450,8 @@ public class BleManager : Singleton<BleManager>
                         {
                             Debug.Log("Commanded disconnect.");
 
-                            if (_connected)
-                            {
-                                BluetoothLEHardwareInterface.DisconnectPeripheral(_deviceAddress, (address) =>
-                                {
-                                    Debug.Log("Device disconnected");
-                                    BluetoothLEHardwareInterface.DeInitialize(() =>
-                                    {
-                                        _connected = false;
-                                        _state = States.None;
-                                    });
-                                });
-                            }
-                            else
-                            {
-                                BluetoothLEHardwareInterface.DeInitialize(() =>
-                                {
-                                    _state = States.None;
-                                });
-                            }
+                            _Disconnect();
+
                             break;
                         }
                 }
@@ -430,21 +459,21 @@ public class BleManager : Singleton<BleManager>
         }
     }
 
-    string FullUUID(string uuid)
-    {
-        string fullUUID = uuid;
-        if (fullUUID.Length == 4)
-            fullUUID = "0000" + uuid + "-0000-1000-8000-00805f9b34fb";
+    //string FullUUID(string uuid)
+    //{
+    //    string fullUUID = uuid;
+    //    if (fullUUID.Length == 4)
+    //        fullUUID = "0000" + uuid + "-0000-1000-8000-00805f9b34fb";
 
-        return fullUUID;
-    }
+    //    return fullUUID;
+    //}
 
     bool IsEqual(string uuid1, string uuid2)
     {
-        if (uuid1.Length == 4)
-            uuid1 = FullUUID(uuid1);
-        if (uuid2.Length == 4)
-            uuid2 = FullUUID(uuid2);
+        //if (uuid1.Length == 4)
+        //    uuid1 = FullUUID(uuid1);
+        //if (uuid2.Length == 4)
+            //uuid2 = FullUUID(uuid2);
 
         return (uuid1.ToUpper().Equals(uuid2.ToUpper()));
     }
