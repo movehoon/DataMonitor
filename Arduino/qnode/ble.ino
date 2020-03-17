@@ -90,6 +90,10 @@ void BluetoothStopAdvertising()
     }
 }
 
+bool BleConnected() {
+  return deviceConnected;
+}
+
 char qnode_name[32];
 void setupBle()
 {
