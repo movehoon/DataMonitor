@@ -94,6 +94,11 @@ bool BleConnected() {
   return deviceConnected;
 }
 
+void BleSend(uint8_t *buff, uint8_t len) {
+  pCharacteristicCommand->setValue(buff, len);
+  pCharacteristicCommand->notify();
+}
+
 char qnode_name[32];
 void setupBle()
 {
@@ -165,12 +170,12 @@ void loopBle()
 //            pCharacteristicCommand->setValue(packet, 1);
 //            pCharacteristicCommand->notify();
 //        }
-        if (deviceConnected) {
-          count++;
-          sprintf(buff, "{CURQA:-0.1234, COUNT:%d, HELLO THIS IS TEST NOW RUNNING}", count);
-          pCharacteristicCommand->setValue((uint8_t *)buff, strlen(buff));
-          pCharacteristicCommand->notify();
-          Serial.println(buff);
-        }
+//        if (deviceConnected) {
+//          count++;
+//          sprintf(buff, "{CURQA:-0.1234, COUNT:%d, HELLO THIS IS TEST NOW RUNNING}", count);
+//          pCharacteristicCommand->setValue((uint8_t *)buff, strlen(buff));
+//          pCharacteristicCommand->notify();
+//          Serial.println(buff);
+//        }
     }
 }
