@@ -76,7 +76,7 @@ public class Program_Qnode : MonoBehaviour
         string message = BleManager.Instance.Message;
         if (message != null)
         {
-            inputField_Message.text += "\r\n" + message;
+            inputField_Message.text += message;
         }
     }
 }

@@ -424,13 +424,13 @@ public class BleManager : Singleton<BleManager>
                                     _state = States.None;
                                 }
 
-                                string msg = Encoding.Default.GetString(bytes);
-                                Debug.Log("Recv2:" + msg);
-                                _recv_message.Add(msg);
-                                if (_recv_message.Count > 1000)
-                                {
-                                    _recv_message.Clear();
-                                }
+                                //string msg = Encoding.Default.GetString(bytes);
+                                //Debug.Log("Recv2:" + msg);
+                                //_recv_message.Add(msg);
+                                //if (_recv_message.Count > 1000)
+                                //{
+                                //    _recv_message.Clear();
+                                //}
                                 // we received some data from the device
                                 //ProcessButton(bytes);
                             });
