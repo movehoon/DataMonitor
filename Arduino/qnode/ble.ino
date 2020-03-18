@@ -138,8 +138,8 @@ void setupBle()
     BluetoothStartAdvertising();
 }
 
-uint16_t count;
-char buff[256];
+//uint16_t count;
+//char buff[256];
 void loopBle()
 {
   delay(1);

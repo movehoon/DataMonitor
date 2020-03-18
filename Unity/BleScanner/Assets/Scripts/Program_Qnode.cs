@@ -8,12 +8,21 @@ public class Program_Qnode : MonoBehaviour
 
     public Dropdown dropDown_DeviceList;
     public Button button_Ble;
-    public InputField inputField_Message;
+    public Text text_Message;
+    public GameObject panelBle;
 
     public void ScanBle()
     {
-        dropDown_DeviceList.ClearOptions();
-        BleManager.Instance.Search();
+        if (!BleManager.Instance.IsConnectd)
+        {
+            dropDown_DeviceList.ClearOptions();
+            BleManager.Instance.Search();
+            panelBle.SetActive(true);
+        }
+        else
+        {
+            BleManager.Instance.Disconnect();
+        }
     }
 
     public void Connect()
@@ -76,7 +85,7 @@ public class Program_Qnode : MonoBehaviour
         string message = BleManager.Instance.Message;
         if (message != null)
         {
-            inputField_Message.text += message;
+            text_Message.text += message;
         }
     }
 }

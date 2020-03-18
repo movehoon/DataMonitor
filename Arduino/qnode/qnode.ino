@@ -1,5 +1,14 @@
 #include "led_indicator.h"
 
+// ----- Preference -----//
+#include <Preferences.h>
+
+#define PREFS_NAME "saved_data"
+#define PREFS_MODE "MODE"
+#define PREFS_AP "AP"
+#define PREFS_PW "PW"
+// ----- Preference -----//
+
 #define LED_BUILTIN 2
 
 enum {
@@ -14,6 +23,12 @@ const uint32_t button = 0;
 
 LedIndicator ledIndicator;
 
+
+
+bool req_ble_report_f;
+
+int count;
+char buff[256];
 // ----- Timer Setup -----//
 hw_timer_t * timer = NULL;
 volatile SemaphoreHandle_t timerSemaphore;
@@ -24,6 +39,9 @@ void IRAM_ATTR onTimer(){
   portENTER_CRITICAL_ISR(&timerMux);
 
   digitalWrite(LED_BUILTIN, ledIndicator.process());
+
+  req_ble_report_f = true;
+
 
   portEXIT_CRITICAL_ISR(&timerMux);
   // Give a semaphore that we can check in the loop
@@ -42,6 +60,12 @@ void setup()
   
   // button press will be shown on the iPhone app)
   pinMode(button, INPUT);
+
+  // 모드 확인
+  prefs.begin(PREFS_NAME);
+  mode = prefs.getChar(PREFS_MODE, -1);
+  ap = prefs.getString(PREFS_AP, "");
+  pw = prefs.getString(PREFS_PW, "");
 
   setupBle();
 
@@ -77,8 +101,28 @@ void loop()
   else {
     ledIndicator.SetBlinkCount(LED_DISCONNECT_BLE);
   }
+
+  if (req_ble_report_f) {
+    req_ble_report_f = false;
+
+    if (BleConnected()) {
+      sprintf(buff, "{CURQA:-0.1234, COUNT:%d, HELLO THIS IS TEST NOW RUNNING}\r\n", count++);
+      SendSplit((uint8_t *)buff, strlen(buff), 20);
+      Serial.print(buff);
+    }
+  }
 }
 
+void SendSplit(uint8_t *buff, int len, int unit)
+{
+  uint8_t sendCount = len / unit + 1;
+  for (uint8_t i=0; i<sendCount; i++) {
+    if (i < sendCount-1)
+      BleSend(buff+(i*unit), unit);
+    else
+      BleSend(buff+(i*unit), len%unit);
+  }
+}
 
 uint8_t recv_cmd2[256];
 uint8_t cmd2_index;
@@ -88,13 +132,14 @@ void serialEvent () {
     if (recv_cmd2[cmd2_index] == 0x0A) {
       recv_cmd2[cmd2_index+1] = 0x00;
 
-      uint8_t sendCount = cmd2_index / 20 + 1;
-      for (uint8_t i=0; i<sendCount; i++) {
-        if (i < sendCount-1)
-          BleSend(recv_cmd2+(i*20), 20);
-        else
-          BleSend(recv_cmd2+(i*20), cmd2_index%20);
-      }
+      SendSplit(recv_cmd2, cmd2_index+1, 20);
+//      uint8_t sendCount = cmd2_index / 20 + 1;
+//      for (uint8_t i=0; i<sendCount; i++) {
+//        if (i < sendCount-1)
+//          BleSend(recv_cmd2+(i*20), 20);
+//        else
+//          BleSend(recv_cmd2+(i*20), cmd2_index%20);
+//      }
       Serial.printf("[U]%s\n", recv_cmd2);
 
       cmd2_index = 0;
