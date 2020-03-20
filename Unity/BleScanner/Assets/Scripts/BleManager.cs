@@ -73,6 +73,11 @@ public class BleManager : Singleton<BleManager>
         }
     }
 
+    public void AddMessageTest(string message)
+    {
+        _recv_message.Add(message);
+    }
+
     public void Search()
     {
         DeviceName = "QNODE";
@@ -395,11 +400,11 @@ public class BleManager : Singleton<BleManager>
                                 Debug.Log("Subscribing to characteristics...");
 
                                 // read the initial state of the button
-                                Debug.Log("notifyAddress:" + notifyAddress);
-                                Debug.Log("notifyCharacteristic:" + notifyCharacteristic);
-                                Debug.Log("_deviceAddress:" + _deviceAddress);
-                                Debug.Log("ServiceUUID:" + ServiceUUID);
-                                Debug.Log("BtnUUID:" + BtnUUID);
+                                //Debug.Log("notifyAddress:" + notifyAddress);
+                                //Debug.Log("notifyCharacteristic:" + notifyCharacteristic);
+                                //Debug.Log("_deviceAddress:" + _deviceAddress);
+                                //Debug.Log("ServiceUUID:" + ServiceUUID);
+                                //Debug.Log("BtnUUID:" + BtnUUID);
                                 BluetoothLEHardwareInterface.ReadCharacteristic(_deviceAddress, ServiceUUID, BtnUUID, (characteristic, bytes) =>
                                 {
                                     string msg = Encoding.Default.GetString(bytes);

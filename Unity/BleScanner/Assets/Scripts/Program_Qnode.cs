@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,7 +10,12 @@ public class Program_Qnode : MonoBehaviour
     public Dropdown dropDown_DeviceList;
     public Button button_Ble;
     public Text text_Message;
+    public Text text_Decode;
     public GameObject panelBle;
+    public InputField inputfield_AP;
+    public InputField inputfield_PW;
+
+    Dictionary<string, string> slot = new Dictionary<string, string>();
 
     public void ScanBle()
     {
@@ -25,6 +31,14 @@ public class Program_Qnode : MonoBehaviour
         }
     }
 
+    int count;
+    public void AddMessage()
+    {
+        string message = "{\"CURQA\":" + UnityEngine.Random.Range(-1.0f, 1.0f) + ", COUNT:" + count + ", HELLO THIS IS TEST NOW RUNNING}\r\n";
+        count = count + 1;
+        BleManager.Instance.AddMessageTest(message);
+    }
+
     public void Connect()
     {
         int index = dropDown_DeviceList.value;
@@ -38,10 +52,88 @@ public class Program_Qnode : MonoBehaviour
         BleManager.Instance.Send("hello");
     }
 
+    public void Decode(string message)
+    {
+        Debug.Log("message origin: " + message);
+        string[] removeCharacters = new string[] { "\"", "{", "}" };
+        foreach (string removeChar in removeCharacters)
+        {
+            message = message.Replace(removeChar, string.Empty);
+        }
+        //message = message.Trim(new char[] { ' ', '\"', '{', '}' });
+        Debug.Log("message trim  : " + message);
+
+        string[] separator_level1 = new string[] { ",", ";" };
+        string[] separator_level2 = new string[] { ":", "=" };
+        string[] vars = message.Split(separator_level1, 100, System.StringSplitOptions.RemoveEmptyEntries);
+        foreach (string v in vars)
+        {
+            Debug.Log(v);
+            string[] pairs = v.Trim().Split(separator_level2, 2, System.StringSplitOptions.RemoveEmptyEntries);
+            if (pairs.Length == 2)
+            {
+                slot[pairs[0].Trim()] = pairs[1].Trim();
+            }
+        }
+        foreach (KeyValuePair<string, string> kvp in slot)
+        {
+            Debug.Log("Key=" + kvp.Key + ", Value=" + kvp.Value);
+        }
+    }
+
+    string stack_string;
+    public string StackUntilLine(string msg)
+    {
+        stack_string += msg;
+        int newLine = stack_string.IndexOf(Environment.NewLine);
+        Debug.Log("newLine: " + newLine);
+        if (newLine > 0)
+        {
+            string tmpString = stack_string;
+            stack_string = "";
+            return tmpString;
+        }
+        return "";
+    }
+
+    public void ReadSetting()
+    {
+        StartCoroutine(Setting(false));
+    }
+
+    public void WriteSetting()
+    {
+        StartCoroutine(Setting(true));
+    }
+
+    private IEnumerator Setting(bool write=false)
+    {
+        string command = "";
+        command = "ap" + ((write) ? "=" + inputfield_AP.text : "");
+        BleManager.Instance.Send(command + "");
+        yield return new WaitForSeconds(0.5f);
+        //BleManager.Instance.AddMessageTest("ap=oas\n");
+
+        command = "pw" + ((write) ? "=" + inputfield_PW.text : "");
+        BleManager.Instance.Send(command + "");
+        yield return new WaitForSeconds(0.5f);
+        //BleManager.Instance.AddMessageTest("pw=oas12345\r\n");
+
+        BleManager.Instance.Send("ip=121.137.95.17");
+        yield return new WaitForSeconds(0.5f);
+        //BleManager.Instance.AddMessageTest("ip=111.222.333.444\r\n");
+
+        if (write)
+        {
+//            BleManager.Instance.Send("re");
+        }
+    }
+
     // Start is called before the first frame update
     void Start()
     {
-        
+        string message = "{\"CURQA\":-0.1234, COUNT:100, HELLO THIS IS TEST NOW RUNNING}\r\n";
+        Decode(message);
     }
 
     // Update is called once per frame
@@ -86,6 +178,21 @@ public class Program_Qnode : MonoBehaviour
         if (message != null)
         {
             text_Message.text += message;
+            string message_line = StackUntilLine(message);
+            if (message_line.Length > 0)
+            {
+                Decode(message_line);
+                text_Decode.text = "";
+                foreach (KeyValuePair<string, string> kvp in slot)
+                {
+                    text_Decode.text += kvp.Key + "=" + kvp.Value + Environment.NewLine;
+                    //Debug.Log("Key=" + kvp.Key + ", Value=" + kvp.Value);
+                    if (kvp.Key.ToUpper() == "AP")
+                        inputfield_AP.text = kvp.Value;
+                    else if (kvp.Key.ToUpper() == "PW")
+                        inputfield_PW.text = kvp.Value;
+                }
+            }
         }
     }
 }

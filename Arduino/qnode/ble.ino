@@ -14,6 +14,13 @@ BLEServer* pServer = 0;
 BLECharacteristic* pCharacteristicCommand = 0;
 BLECharacteristic* pCharacteristicData = 0;
 
+String ble_message;
+String GetBleMessage() {
+  String tmp = ble_message;
+  ble_message = "";
+  return tmp;
+}
+
 class BTServerCallbacks : public BLEServerCallbacks
 {
     void onConnect(BLEServer* pServer)
@@ -54,12 +61,11 @@ class BTCallbacks : public BLECharacteristicCallbacks
       std::string rxValue = pCharacteristic->getValue();
 
       if (rxValue.length() > 0) {
+        ble_message = String(rxValue.c_str());
         Serial.println("*********");
         Serial.print("Received Value: ");
         for (int i = 0; i < rxValue.length(); i++)
           Serial.print(rxValue[i]);
-
-        Serial.println();
         Serial.println("*********");
       }
       

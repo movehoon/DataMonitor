@@ -1,13 +1,9 @@
 #include "led_indicator.h"
 
-// ----- Preference -----//
-#include <Preferences.h>
-
-#define PREFS_NAME "saved_data"
 #define PREFS_MODE "MODE"
 #define PREFS_AP "AP"
 #define PREFS_PW "PW"
-// ----- Preference -----//
+#define PREFS_IP "IP"
 
 #define LED_BUILTIN 2
 
@@ -22,7 +18,6 @@ enum {
 const uint32_t button = 0;
 
 LedIndicator ledIndicator;
-
 
 
 bool req_ble_report_f;
@@ -42,7 +37,6 @@ void IRAM_ATTR onTimer(){
 
   req_ble_report_f = true;
 
-
   portEXIT_CRITICAL_ISR(&timerMux);
   // Give a semaphore that we can check in the loop
   xSemaphoreGiveFromISR(timerSemaphore, NULL);
@@ -50,10 +44,13 @@ void IRAM_ATTR onTimer(){
 }
 // ----- Timer Setup -----//
 
+char tmp_msg[256];
 void setup()
 {
   Serial.begin(115200);
   Serial2.begin(115200);
+
+  printf("\nStart\n");
   
   // led turned on/off from the iPhone app
   pinMode(LED_BUILTIN, OUTPUT);
@@ -61,11 +58,10 @@ void setup()
   // button press will be shown on the iPhone app)
   pinMode(button, INPUT);
 
-  // 모드 확인
-  prefs.begin(PREFS_NAME);
-  mode = prefs.getChar(PREFS_MODE, -1);
-  ap = prefs.getString(PREFS_AP, "");
-  pw = prefs.getString(PREFS_PW, "");
+  LoadPreference();
+  printf("ap=%s\n", GetPreferenceAP());
+  printf("pw=%s\n", GetPreferencePW());
+  printf("ip=%s\n", GetPreferenceIP());
 
   setupBle();
 
@@ -106,9 +102,14 @@ void loop()
     req_ble_report_f = false;
 
     if (BleConnected()) {
-      sprintf(buff, "{CURQA:-0.1234, COUNT:%d, HELLO THIS IS TEST NOW RUNNING}\r\n", count++);
-      SendSplit((uint8_t *)buff, strlen(buff), 20);
-      Serial.print(buff);
+//      sprintf(buff, "{CURQA:-0.1234, COUNT:%d, HELLO THIS IS TEST NOW RUNNING}\r\n", count++);
+//      SendSplit((uint8_t *)buff, strlen(buff), 20);
+//      Serial.print(buff);
+
+      String ble_message = GetBleMessage();
+      if (ble_message.length() > 0) {
+        parse((char *)ble_message.c_str());
+      }
     }
   }
 }
@@ -146,5 +147,63 @@ void serialEvent () {
       continue;
     }
     cmd2_index++;
+  }
+}
+
+char msg[256];
+void parse(char* cmd) {
+  Serial.print("parsing: ");
+  Serial.println(cmd);
+  
+  if (strlen(cmd)==0)
+    return;
+  
+  char *p_token = (char *)strtok(cmd, "=");
+  
+  if (strncmp(p_token, "#", 1) == 0) {
+    // Ignore comment
+  }
+  else if (strncmp(p_token,"mo",2)==0) {
+    p_token = (char *)strtok(NULL, "=");
+    if (p_token) {
+      SavePreferenceMode(p_token);
+    }
+    sprintf(msg, "mo=%s\n", GetPreferenceMode());
+    printf(msg);
+    SendSplit((uint8_t *)msg, strlen(msg), 20);
+  }
+  else if (strncmp(p_token,"ap",2)==0) {
+    p_token = (char *)strtok(NULL, "=");
+    if (p_token) {
+      SavePreferenceAP(p_token);
+    }
+    sprintf(msg, "ap=%s\n", GetPreferenceAP());
+    printf(msg);
+    SendSplit((uint8_t *)msg, strlen(msg), 20);
+  }
+  else if (strncmp(p_token,"pw",2)==0) {
+    p_token = (char *)strtok(NULL, "=");
+    if (p_token) {
+      SavePreferencePW(p_token);
+    }
+    sprintf(msg, "pw=%s\n", GetPreferencePW());
+    printf(msg);
+    SendSplit((uint8_t *)msg, strlen(msg), 20);
+  }
+  else if (strncmp(p_token,"ip",2)==0) {
+    p_token = (char *)strtok(NULL, "=");
+    if (p_token) {
+      SavePreferenceIP(p_token);
+      printf("Save ip to %s\n", p_token);
+    }
+    sprintf(msg, "ip=%s\n", GetPreferenceIP());
+    printf(msg);
+    SendSplit((uint8_t *)msg, strlen(msg), 20);
+  }
+  else if (strncmp(p_token,"re",2)==0) {
+    ESP.restart();
+  }
+  else {
+    Serial.printf("Unknown Command %s\n", cmd);
   }
 }
