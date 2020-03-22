@@ -6,11 +6,15 @@
 #define PREFS_IP "IP"
 
 #define LED_BUILTIN 2
+#define PIN_MODE 32
 
 enum {
   LED_NONE,
-  LED_RUNNING,
-  LED_DISCONNECT_BLE,
+  LED_BLE_RUNNING,
+  LED_WIFI_RUNNING,
+  LED_BLE_DISCONNECT,
+  LED_WIFI_SERVER_DISCONNECTED,
+  LED_WIFI_AP_DISCONNECTED,
 };
 
 // pin 5 on the RGB shield is button 1
@@ -19,6 +23,7 @@ const uint32_t button = 0;
 
 LedIndicator ledIndicator;
 
+bool mode_wifi_f = false;
 
 bool req_ble_report_f;
 
@@ -28,12 +33,21 @@ char buff[256];
 hw_timer_t * timer = NULL;
 volatile SemaphoreHandle_t timerSemaphore;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
+int timer_count_100ms;
 
 void IRAM_ATTR onTimer(){
   // Increment the counter and set the time of ISR
   portENTER_CRITICAL_ISR(&timerMux);
 
-  digitalWrite(LED_BUILTIN, ledIndicator.process());
+  timer_count_100ms++;
+
+  if (timer_count_100ms%2) {
+    digitalWrite(LED_BUILTIN, ledIndicator.process());
+  }
+
+  if (timer_count_100ms%5) {
+    RequestWifiProcess();
+  }
 
   req_ble_report_f = true;
 
@@ -63,9 +77,10 @@ void setup()
   printf("pw=%s\n", GetPreferencePW());
   printf("ip=%s\n", GetPreferenceIP());
 
-  setupBle();
-
-  ledIndicator.SetBlinkCount(LED_DISCONNECT_BLE);
+  if (mode_wifi_f)
+    setupWifi();
+  else
+    setupBle();
 
   // ----- Start Timer -----//
   // Create semaphore to inform us when the timer has fired
@@ -78,7 +93,7 @@ void setup()
   timerAttachInterrupt(timer, &onTimer, true);
   // Set alarm to call onTimer function every 200 microsecond (value in microseconds).
   // Repeat the alarm (third parameter)
-  timerAlarmWrite(timer, 200000, true);
+  timerAlarmWrite(timer, 100000, true);
   // Start an alarm
   timerAlarmEnable(timer);
   // ----- Start Timer -----//  
@@ -86,17 +101,31 @@ void setup()
 
 void loop()
 {
-  delay(10);
-  loopBle();
+  delay(1);
 
-  serialEvent();
-
-  if (BleConnected()) {
-    ledIndicator.SetBlinkCount(LED_RUNNING);
+  if (mode_wifi_f) {
+    loopWifi();
+    if (GetWifiStatus() == 0) {
+      ledIndicator.SetBlinkCount(LED_WIFI_AP_DISCONNECTED);
+    }
+    else if (GetWifiStatus() == 1) {
+      ledIndicator.SetBlinkCount(LED_WIFI_SERVER_DISCONNECTED);
+    }
+    else if (GetWifiStatus() == 2) {
+      ledIndicator.SetBlinkCount(LED_WIFI_RUNNING);
+    }
   }
   else {
-    ledIndicator.SetBlinkCount(LED_DISCONNECT_BLE);
+    loopBle();
+    if (BleConnected()) {
+      ledIndicator.SetBlinkCount(LED_BLE_RUNNING);
+    }
+    else {
+      ledIndicator.SetBlinkCount(LED_BLE_DISCONNECT);
+    }
   }
+
+  serialEvent();
 
   if (req_ble_report_f) {
     req_ble_report_f = false;
@@ -125,9 +154,25 @@ void SendSplit(uint8_t *buff, int len, int unit)
   }
 }
 
+uint8_t recv_cmd[256];
+uint8_t cmd_index;
 uint8_t recv_cmd2[256];
 uint8_t cmd2_index;
 void serialEvent () {
+  while(Serial.available()) {
+    recv_cmd[cmd_index] = (uint8_t)Serial.read();
+    if (recv_cmd[cmd_index] == 0x0A || recv_cmd[cmd_index] == 0x0D) {
+      recv_cmd[cmd_index] = 0x00;
+
+      Serial.printf("[U]%s\n", recv_cmd);
+      parse((char *)recv_cmd);
+
+      cmd_index = 0;
+      continue;
+    }
+    cmd_index++;
+  }
+  
   while(Serial2.available()) {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {

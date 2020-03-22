@@ -14,6 +14,11 @@ BLEServer* pServer = 0;
 BLECharacteristic* pCharacteristicCommand = 0;
 BLECharacteristic* pCharacteristicData = 0;
 
+bool req_ble_process_f = false;
+void RequestBleProcess() {
+  req_ble_process_f = true;
+}
+
 String ble_message;
 String GetBleMessage() {
   String tmp = ble_message;
@@ -148,7 +153,9 @@ void setupBle()
 //char buff[256];
 void loopBle()
 {
-  delay(1);
+  if (req_ble_process_f) {
+    req_ble_process_f = false;
+
     if (pServer != 0)
     {
         // disconnecting
@@ -183,5 +190,6 @@ void loopBle()
 //          pCharacteristicCommand->notify();
 //          Serial.println(buff);
 //        }
+      }
     }
 }
