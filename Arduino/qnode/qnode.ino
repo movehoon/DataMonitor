@@ -30,10 +30,13 @@ LedIndicator ledIndicator;
 
 bool mode_wifi_f = false;
 
-bool req_ble_report_f;
+bool req_report_ble_f;
+bool req_report_wifi_f;
 bool req_titan_monitor_f;
 
 int test_led_count;
+
+float curqa;
 
 int count;
 char buff[256];
@@ -61,7 +64,10 @@ void IRAM_ATTR onTimer(){
     test_led_count++;
   }
 
-  req_ble_report_f = true;
+  req_report_ble_f = true;
+  if (timer_count_100ms % 10) {
+    req_report_wifi_f = true;
+  }
 
   req_titan_monitor_f = true;
 
@@ -71,6 +77,14 @@ void IRAM_ATTR onTimer(){
   // It is safe to use digitalRead/Write here if you want to toggle an output
 }
 // ----- Timer Setup -----//
+
+char qnode_name[32];
+const char *GetDeviceName() {
+  uint64_t chipid = ESP.getEfuseMac();
+  sprintf(qnode_name, "QNODE_%04X", (uint16_t)chipid);
+  Serial.println(qnode_name);
+  return qnode_name;
+}
 
 char tmp_msg[256];
 void setup()
@@ -96,6 +110,8 @@ void setup()
   printf("ap=%s\n", GetPreferenceAP());
   printf("pw=%s\n", GetPreferencePW());
   printf("ip=%s\n", GetPreferenceIP());
+
+  setupDisplay();
 
   if (mode_wifi_f)
     setupWifi();
@@ -153,8 +169,18 @@ void loop()
     digitalWrite(PIN_485EN, LOW);
   }
 
+  sprintf(buff, "{\"CURQA\":%1.04f}\r\n", curqa);
+//  Serial.print(buff);
+
   if (mode_wifi_f) {
     loopWifi();
+
+    if (req_report_wifi_f) {
+      req_report_wifi_f = false;
+
+      wifi_send(buff);
+    }
+    
     if (GetWifiStatus() == 0) {
       ledIndicator.SetBlinkCount(LED_WIFI_AP_DISCONNECTED);
     }
@@ -167,30 +193,29 @@ void loop()
   }
   else {
     loopBle();
+
+    if (req_report_ble_f) {
+      req_report_ble_f = false;
+      
+      if (BleConnected()) {
+        SendSplit((uint8_t *)buff, strlen(buff), 20);
+      }
+    }
+
     if (BleConnected()) {
       ledIndicator.SetBlinkCount(LED_BLE_RUNNING);
     }
     else {
       ledIndicator.SetBlinkCount(LED_BLE_DISCONNECT);
     }
+
+    String ble_message = GetBleMessage();
+    if (ble_message.length() > 0) {
+      parse((char *)ble_message.c_str());
+    }
   }
 
   serialEvent();
-
-  if (req_ble_report_f) {
-    req_ble_report_f = false;
-
-    if (BleConnected()) {
-//      sprintf(buff, "{CURQA:-0.1234, COUNT:%d, HELLO THIS IS TEST NOW RUNNING}\r\n", count++);
-//      SendSplit((uint8_t *)buff, strlen(buff), 20);
-//      Serial.print(buff);
-
-      String ble_message = GetBleMessage();
-      if (ble_message.length() > 0) {
-        parse((char *)ble_message.c_str());
-      }
-    }
-  }
 }
 
 void SendSplit(uint8_t *buff, int len, int unit)
@@ -227,10 +252,14 @@ void serialEvent () {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {
       recv_cmd2[cmd2_index+1] = 0x00;
+      Serial.printf("[U2]%s\n", recv_cmd2);
 
-      if (BleConnected()) {
-        SendSplit(recv_cmd2, cmd2_index+1, 20);
-      }
+      parseTitan((char *)recv_cmd2);
+
+      
+//      sprintf(buff, "{CURQA:%f}\r\n", curqa);
+//      Serial.print(buff);
+
 //      uint8_t sendCount = cmd2_index / 20 + 1;
 //      for (uint8_t i=0; i<sendCount; i++) {
 //        if (i < sendCount-1)
@@ -238,12 +267,31 @@ void serialEvent () {
 //        else
 //          BleSend(recv_cmd2+(i*20), cmd2_index%20);
 //      }
-      Serial.printf("[U2]%s\n", recv_cmd2);
 
       cmd2_index = 0;
       continue;
     }
     cmd2_index++;
+  }
+}
+
+void parseTitan(char* cmd) {
+//   Serial.print("parsing: ");
+//   Serial.println(cmd);
+  
+  char *p_token;
+  p_token = strtok(cmd, ":");
+
+  if (p_token) {
+    p_token = strtok(NULL, "=");
+    if (p_token) {
+      if (strncmp(p_token, "CURQA", 5) == 0) {
+        p_token = strtok(NULL, "=");
+        if (p_token) {
+          curqa = atof(p_token);
+        }
+      }
+    }
   }
 }
 

@@ -106,18 +106,16 @@ bool BleConnected() {
 }
 
 void BleSend(uint8_t *buff, uint8_t len) {
-  pCharacteristicCommand->setValue(buff, len);
-  pCharacteristicCommand->notify();
+  if (deviceConnected) {
+    pCharacteristicCommand->setValue(buff, len);
+    pCharacteristicCommand->notify();
+  }
 }
 
-char qnode_name[32];
 void setupBle()
 {
-    uint64_t chipid = ESP.getEfuseMac();
-    sprintf(qnode_name, "QNODE_%04X", (uint16_t)chipid);
-    Serial.println(qnode_name);
 
-    BLEDevice::init(qnode_name);
+    BLEDevice::init(GetDeviceName());
     // BLEDevice::setCustomGattsHandler(my_gatts_event_handler);
     // BLEDevice::setCustomGattcHandler(my_gattc_event_handler);
 

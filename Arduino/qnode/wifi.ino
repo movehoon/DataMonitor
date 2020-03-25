@@ -38,16 +38,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
   free(msg);
 }
 
-String getMacAddress() {
-  uint64_t chipid=ESP.getEfuseMac();//The chip ID is essentially its MAC address(length: 6 bytes).
-  sprintf(MAC_char, "%04X",(uint16_t)(chipid>>32)); //print High 2 bytes
-  sprintf(MAC_char+4, "%08X",(uint32_t)chipid);       //print Low 4bytes.
-  return String(MAC_char);
+void wifi_send(char *message) {
+  if (client.connected()) {
+    client.publish(topic, message);
+  }
 }
 
+//String getMacAddress() {
+//  uint64_t chipid=ESP.getEfuseMac();//The chip ID is essentially its MAC address(length: 6 bytes).
+//  sprintf(MAC_char, "%04X",(uint16_t)(chipid>>32)); //print High 2 bytes
+//  sprintf(MAC_char+4, "%08X",(uint32_t)chipid);       //print Low 4bytes.
+//  return String(MAC_char);
+//}
+
 void setupWifi() {
-  getMacAddress();
-  sprintf(topic, "%s/%s", TOPIC_PREFIX, MAC_char);
+//  getMacAddress();
+  sprintf(topic, "%s/%s", TOPIC_PREFIX, GetDeviceName());
   sprintf(topic_sub, "%s/sub", topic);
   Serial.print("topic: ");
   Serial.println(topic);
