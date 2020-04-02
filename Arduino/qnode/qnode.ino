@@ -9,9 +9,12 @@
 #define PIN_MODE 32
 #define PIN_485EN 4
 
-#define PIN_LED1  25
-#define PIN_LED2  26
-#define PIN_LED3  27
+#define PIN_LED_B  25
+#define PIN_LED_G  26
+#define PIN_LED_R  27
+#define LED_R 0
+#define LED_G 1
+#define LED_B 2
 
 enum {
   LED_NONE,
@@ -27,6 +30,8 @@ enum {
 const uint32_t button = 0;
 
 LedIndicator ledIndicator;
+
+const int LED_FREQ = 5000;
 
 bool mode_wifi_f = false;
 
@@ -86,6 +91,44 @@ const char *GetDeviceName() {
   return qnode_name;
 }
 
+void LedSetup() {
+  ledcSetup(LED_B, LED_FREQ, 8);
+  ledcAttachPin(PIN_LED_B, LED_B);
+  ledcSetup(LED_G, LED_FREQ, 8);
+  ledcAttachPin(PIN_LED_G, LED_G);
+  ledcSetup(LED_R, LED_FREQ, 8);
+  ledcAttachPin(PIN_LED_R, LED_R);
+
+  int led_delay = 10;
+  for (int i=0; i<100; i++) {
+    ledcWrite(LED_R, i);
+    delay(led_delay);
+  }
+  for (int i=100; i>0; i--) {
+    ledcWrite(LED_R, i);
+    delay(led_delay);
+  }
+  ledcWrite(LED_R, 0);
+  for (int i=0; i<100; i++) {
+    ledcWrite(LED_G, i);
+    delay(led_delay);
+  }
+  for (int i=100; i>0; i--) {
+    ledcWrite(LED_G, i);
+    delay(led_delay);
+  }
+  ledcWrite(LED_G, 0);
+  for (int i=0; i<100; i++) {
+    ledcWrite(LED_B, i);
+    delay(led_delay);
+  }
+  for (int i=100; i>0; i--) {
+    ledcWrite(LED_B, i);
+    delay(led_delay);
+  }
+  ledcWrite(LED_B, 0);
+}
+
 char tmp_msg[256];
 void setup()
 {
@@ -97,10 +140,9 @@ void setup()
   // led turned on/off from the iPhone app
   pinMode(LED_BUILTIN, OUTPUT);
   pinMode(PIN_485EN, OUTPUT);
-  pinMode(PIN_LED1, OUTPUT);
-  pinMode(PIN_LED2, OUTPUT);
-  pinMode(PIN_LED3, OUTPUT);
-  
+
+  LedSetup();
+
   // button press will be shown on the iPhone app)
   pinMode(button, INPUT);
   pinMode(PIN_MODE, INPUT);
