@@ -33,7 +33,7 @@ LedIndicator ledIndicator;
 
 const int LED_FREQ = 5000;
 
-bool mode_wifi_f = false;
+int mode;
 
 bool req_report_ble_f;
 bool req_report_wifi_f;
@@ -146,7 +146,8 @@ void setup()
   // button press will be shown on the iPhone app)
   pinMode(button, INPUT);
   pinMode(PIN_MODE, INPUT);
-  mode_wifi_f = digitalRead(PIN_MODE);
+  mode = digitalRead(PIN_MODE);
+  printf("mode is %d\n", mode);
 
   LoadPreference();
   printf("ap=%s\n", GetPreferenceAP());
@@ -155,7 +156,7 @@ void setup()
 
   setupDisplay();
 
-  if (mode_wifi_f)
+  if (mode)
     setupWifi();
   else
     setupBle();
@@ -214,7 +215,7 @@ void loop()
   sprintf(buff, "{\"CURQA\":%1.04f}\r\n", curqa);
 //  Serial.print(buff);
 
-  if (mode_wifi_f) {
+  if (mode) {
     loopWifi();
 
     if (req_report_wifi_f) {
