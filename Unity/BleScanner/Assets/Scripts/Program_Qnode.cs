@@ -139,16 +139,14 @@ public class Program_Qnode : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        ColorBlock colorBlock = button_Ble.colors;
         if (BleManager.Instance.IsConnectd)
         {
-            colorBlock.normalColor = Color.blue;
+            button_Ble.GetComponentInChildren<Image>().color = Color.blue;
         }
         else
         {
-            colorBlock.normalColor = Color.gray;
+            button_Ble.GetComponentInChildren<Image>().color = Color.black;
         }
-        button_Ble.colors = colorBlock;
 
         List<BleDevice> bleDevice = BleManager.Instance.Devices;
         if (bleDevice.Count > 0)
