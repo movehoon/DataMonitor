@@ -5,7 +5,7 @@
 #define PREFS_PW "PW"
 #define PREFS_IP "IP"
 
-#define LED_BUILTIN 2
+#define LED_BUILTIN 13
 #define PIN_MODE 32
 #define PIN_485EN 4
 
@@ -25,6 +25,30 @@ enum {
   LED_WIFI_AP_DISCONNECTED,
 };
 
+//@01:SVON
+//#01:SVON=1
+//@01:SVOFF
+//#01:SVOFF=1
+//@01:SVON
+//#01:SVON=1
+//@01:HSPD=350
+//#01:HSPD=350
+//@01:ACC=5000
+//#01:ACC=5000
+//@01:X=12345
+//#01:X=1
+//@01:X=-54321
+//#01:X=1
+//@01:JOGXP
+//#01:JOGXP=1
+//@01:STOPX
+//#01:STOPX=1
+//@01:JOGXN
+//#01:JOGXN=1
+//@01:STOPX
+//#01:STOPX=1
+
+
 // pin 5 on the RGB shield is button 1
 // (button press will be shown on the iPhone app)
 const uint32_t button = 0;
@@ -42,6 +66,14 @@ bool req_titan_monitor_f;
 int test_led_count;
 
 float curqa;
+float curqd;
+float curdd;
+int ex;
+int vx;
+int mst;
+int din;
+int dout;
+
 
 int count;
 char buff[256];
@@ -99,7 +131,7 @@ void LedSetup() {
   ledcSetup(LED_R, LED_FREQ, 8);
   ledcAttachPin(PIN_LED_R, LED_R);
 
-  int led_delay = 10;
+  int led_delay = 2;
   for (int i=0; i<100; i++) {
     ledcWrite(LED_R, i);
     delay(led_delay);
@@ -182,37 +214,20 @@ void loop()
 {
   delay(1);
 
-//  switch(test_led_count%3) {
-//    case 0:
-//      digitalWrite(PIN_LED1, 1);
-//      digitalWrite(PIN_LED2, 0);
-//      digitalWrite(PIN_LED3, 0);
-//      break;
-//    case 1:
-//      digitalWrite(PIN_LED1, 0);
-//      digitalWrite(PIN_LED2, 1);u
-//      digitalWrite(PIN_LED3, 0);
-//      break;
-//    case 2:
-//      digitalWrite(PIN_LED1, 0);
-//      digitalWrite(PIN_LED2, 0);
-//      digitalWrite(PIN_LED3, 1);
-//      break;
-//  }
-
 //  printf("Mode: %d\n", digitalRead(PIN_MODE));
 
   if (req_titan_monitor_f) {
     req_titan_monitor_f = false;
 
     // Request command to Titan
+    uint8_t cmd_delay = 10;
     digitalWrite(PIN_485EN, HIGH);
-    Serial2.write("\n@01:CURQA\n");
+    Serial2.write("\n@01:EX;VX;MST;CURQA;CURQD;CURDD;DIN;DOUT\n");
     Serial2.flush();
     digitalWrite(PIN_485EN, LOW);
   }
 
-  sprintf(buff, "{\"CURQA\":%1.04f}\r\n", curqa);
+  sprintf(buff, "{\"EX\":%d,\"VX\":%d,\"MST\":%d,\"CURQA\":%1.04f,\"CURQD\":%1.04f,\"CURDD\":%1.04f,\"DIN\":%d,\"DOUT\":%d}\r\n", ex, vx, mst, curqa, curqd, curdd, din, dout);
 //  Serial.print(buff);
 
   if (mode) {
@@ -295,11 +310,10 @@ void serialEvent () {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {
       recv_cmd2[cmd2_index+1] = 0x00;
-      Serial.printf("[U2]%s\n", recv_cmd2);
+//      Serial.printf("[U2]%s\n", recv_cmd2);
 
       parseTitan((char *)recv_cmd2);
 
-      
 //      sprintf(buff, "{CURQA:%f}\r\n", curqa);
 //      Serial.print(buff);
 
@@ -319,20 +333,76 @@ void serialEvent () {
 }
 
 void parseTitan(char* cmd) {
+  uint8_t start_index = 0;
+  char buf[32];
+  char value[32];
+//#01:EX=2;VX=0;MST=0x0;CURQA=-0.0263982;CURQD=0;CURDD=0;DIN=0x0;DOUT=0x0
 //   Serial.print("parsing: ");
 //   Serial.println(cmd);
   
   char *p_token;
+  char *c_token;
   p_token = strtok(cmd, ":");
 
   if (p_token) {
-    p_token = strtok(NULL, "=");
-    if (p_token) {
-      if (strncmp(p_token, "CURQA", 5) == 0) {
-        p_token = strtok(NULL, "=");
-        if (p_token) {
-          curqa = atof(p_token);
+    if (strncmp(p_token, "#01", 3) == 0) {
+      p_token = strtok(NULL, ":");
+//      Serial.println(p_token);
+
+      p_token = strtok(p_token, ";");
+      while (p_token) {
+        strcpy(buf, p_token);
+//        Serial.println(buf);
+
+        if (strncmp(buf, "EX=", 3) == 0) {
+          strcpy(value, buf+3);
+          ex = atoi(value);
+//          Serial.print("EX value: ");
+//          Serial.println(ex);
         }
+        else if (strncmp(buf, "VX=", 3) == 0) {
+          strcpy(value, buf+3);
+          vx = atoi(value);
+//          Serial.print("VX value: ");
+//          Serial.println(vx);
+        }
+        else if (strncmp(buf, "MST=", 4) == 0) {
+          strcpy(value, buf+4);
+          mst = atoi(value);
+//          Serial.print("MST value: ");
+//          Serial.println(mst);
+        }
+        else if (strncmp(buf, "CURQA=", 6) == 0) {
+          strcpy(value, buf+6);
+          curqa = atof(value);
+//          Serial.print("CURQA value: ");
+//          Serial.println(curqa);
+        }
+        else if (strncmp(buf, "CURQD=", 6) == 0) {
+          strcpy(value, buf+6);
+          curqd = atof(value);
+//          Serial.print("CURQD value: ");
+//          Serial.println(curqd);
+        }
+        else if (strncmp(buf, "CURDD=", 6) == 0) {
+          strcpy(value, buf+6);
+          curdd = atof(value);
+//          Serial.print("CURDD value: ");
+//          Serial.println(curdd);
+        }
+        else if (strncmp(buf, "DIN=", 4) == 0) {
+          strcpy(value, buf+4);
+          din = atoi(value);
+//          Serial.print("DIN value: ");
+//          Serial.println(din);
+        }
+        else if (strncmp(buf, "DOUT=", 5) == 0) {
+          strcpy(value, buf+5);
+          dout = atoi(value);
+//          Serial.print("DOUT value: ");
+//          Serial.println(dout);
+        }
+        p_token = strtok(NULL, ";");
       }
     }
   }
@@ -350,6 +420,11 @@ void parse(char* cmd) {
   
   if (strncmp(p_token, "#", 1) == 0) {
     // Ignore comment
+  }
+  else if (strncmp(p_token,"id",2)==0) {
+    sprintf(msg, "id=%s\n", GetDeviceName());
+    printf(msg);
+    SendSplit((uint8_t *)msg, strlen(msg), 20);
   }
   else if (strncmp(p_token,"mo",2)==0) {
     p_token = (char *)strtok(NULL, "=");
