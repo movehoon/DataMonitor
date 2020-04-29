@@ -18,7 +18,7 @@ const char * FILE_PREFIX = "qnode_data_";
 const char * FILE_EXT = "txt";
 const int TOTAL_INDEX = 100000;
 int file_index = 1;
-const int FILE_MAX = 1024 * 100;  //100KB
+const int FILE_MAX = 1024 * 10;  //10KB
 char filebuff[FILE_MAX];
 int file_pnt = 0;
 

@@ -5,11 +5,11 @@
 #define PREFS_PW "PW"
 #define PREFS_IP "IP"
 
-#define LED_BUILTIN 13
+#define LED_BUILTIN 25
 #define PIN_MODE 32
 #define PIN_485EN 4
 
-#define PIN_LED_B  25
+#define PIN_LED_B  13
 #define PIN_LED_G  26
 #define PIN_LED_R  27
 #define LED_R 0
@@ -175,10 +175,10 @@ void setup()
 
   LedSetup();
 
-  // button press will be shown on the iPhone app)
   pinMode(button, INPUT);
   pinMode(PIN_MODE, INPUT);
   mode = digitalRead(PIN_MODE);
+  mode = 0;
   printf("mode is %d\n", mode);
 
   LoadPreference();
@@ -187,6 +187,7 @@ void setup()
   printf("ip=%s\n", GetPreferenceIP());
 
   setupDisplay();
+//  setupSdcard();
 
   if (mode)
     setupWifi();
@@ -210,6 +211,13 @@ void setup()
   // ----- Start Timer -----//  
 }
 
+void Send2Titan(const char *msg) {
+  digitalWrite(PIN_485EN, HIGH);
+  Serial2.write(msg);
+  Serial2.flush();
+  digitalWrite(PIN_485EN, LOW);
+}
+
 void loop()
 {
   delay(1);
@@ -220,11 +228,10 @@ void loop()
     req_titan_monitor_f = false;
 
     // Request command to Titan
-    uint8_t cmd_delay = 10;
-    digitalWrite(PIN_485EN, HIGH);
-    Serial2.write("\n@01:EX;VX;MST;CURQA;CURQD;CURDD;DIN;DOUT\n");
-    Serial2.flush();
-    digitalWrite(PIN_485EN, LOW);
+    if (mode) {
+      uint8_t cmd_delay = 10;
+      Send2Titan("\n@01:EX;VX;MST;CURQA;CURQD;CURDD;DIN;DOUT\n");
+    }
   }
 
   sprintf(buff, "{\"EX\":%d,\"VX\":%d,\"MST\":%d,\"CURQA\":%1.04f,\"CURQD\":%1.04f,\"CURDD\":%1.04f,\"DIN\":%d,\"DOUT\":%d}\r\n", ex, vx, mst, curqa, curqd, curdd, din, dout);
@@ -255,9 +262,9 @@ void loop()
     if (req_report_ble_f) {
       req_report_ble_f = false;
       
-      if (BleConnected()) {
-        SendSplit((uint8_t *)buff, strlen(buff), 20);
-      }
+//      if (BleConnected()) {
+//        SendSplit((uint8_t *)buff, strlen(buff), 20);
+//      }
     }
 
     if (BleConnected()) {
@@ -270,6 +277,7 @@ void loop()
     String ble_message = GetBleMessage();
     if (ble_message.length() > 0) {
       parse((char *)ble_message.c_str());
+      Send2Titan(ble_message.c_str());
     }
   }
 
@@ -310,9 +318,14 @@ void serialEvent () {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {
       recv_cmd2[cmd2_index+1] = 0x00;
-//      Serial.printf("[U2]%s\n", recv_cmd2);
+      Serial.printf("[U2]%s\n", recv_cmd2);
+      WriteMessage((char *)recv_cmd2);
+
+      SendSplit((uint8_t *)recv_cmd2, strlen((char *)recv_cmd2), 20);
 
       parseTitan((char *)recv_cmd2);
+
+
 
 //      sprintf(buff, "{CURQA:%f}\r\n", curqa);
 //      Serial.print(buff);
