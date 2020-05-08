@@ -15,6 +15,12 @@ public class Program_Qnode : MonoBehaviour
     public InputField inputfield_AP;
     public InputField inputfield_PW;
 
+    float message_time_counter = 0;
+    float message_period = 0.5f;
+    bool req_message_f = false;
+
+    const string REQ_COMMAND = "@01:EX;VX;MST;CURQA;CURQD;CURDD;DIN;DOUT\n";
+
     Dictionary<string, string> slot = new Dictionary<string, string>();
 
     public void ScanBle()
@@ -96,6 +102,12 @@ public class Program_Qnode : MonoBehaviour
         return "";
     }
 
+    public void ClearMessage()
+    {
+      text_Message.text = "";
+      text_Decode.text = "";
+    }
+
     public void ReadSetting()
     {
         StartCoroutine(Setting(false));
@@ -129,6 +141,13 @@ public class Program_Qnode : MonoBehaviour
         }
     }
 
+    void SendReqCommand()
+    {
+        message_time_counter = 0;
+        req_message_f = false;
+        BleManager.Instance.Send(REQ_COMMAND);
+    }
+
     // Start is called before the first frame update
     void Start()
     {
@@ -139,6 +158,7 @@ public class Program_Qnode : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // BLE ICON
         if (BleManager.Instance.IsConnectd)
         {
             button_Ble.GetComponentInChildren<Image>().color = Color.blue;
@@ -148,6 +168,7 @@ public class Program_Qnode : MonoBehaviour
             button_Ble.GetComponentInChildren<Image>().color = Color.black;
         }
 
+        // Show BLE list
         List<BleDevice> bleDevice = BleManager.Instance.Devices;
         if (bleDevice.Count > 0)
         {
@@ -172,6 +193,15 @@ public class Program_Qnode : MonoBehaviour
             }
         }
 
+        message_time_counter += Time.deltaTime;
+        if (message_time_counter > message_period)
+        {
+            message_time_counter = 0;
+            req_message_f = true;
+            //Debug.Log("Timer Tick");
+        }
+
+        // Process Messages
         string message = BleManager.Instance.Message;
         if (message != null)
         {
@@ -180,6 +210,7 @@ public class Program_Qnode : MonoBehaviour
             if (message_line.Length > 0)
             {
                 Decode(message_line);
+                SendReqCommand();
                 text_Decode.text = "";
                 foreach (KeyValuePair<string, string> kvp in slot)
                 {
@@ -189,6 +220,16 @@ public class Program_Qnode : MonoBehaviour
                         inputfield_AP.text = kvp.Value;
                     else if (kvp.Key.ToUpper() == "PW")
                         inputfield_PW.text = kvp.Value;
+                }
+            }
+        }
+        else
+        {
+            if (BleManager.Instance.IsConnectd)
+            {
+                if (req_message_f)
+                {
+                    SendReqCommand();
                 }
             }
         }
