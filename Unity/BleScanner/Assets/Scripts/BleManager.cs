@@ -78,9 +78,13 @@ public class BleManager : Singleton<BleManager>
         _recv_message.Add(message);
     }
 
+    public void Search(string ble_name)
+    {
+        DeviceName = ble_name;
+        Search();
+    }
     public void Search()
     {
-        DeviceName = "QNODE";
         _device.Clear();
         BluetoothLEHardwareInterface.Initialize(true, false, () =>
         {
