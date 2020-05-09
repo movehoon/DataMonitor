@@ -72,7 +72,7 @@ void IRAM_ATTR onTimer(){
 char qnode_name[32];
 const char *GetDeviceName() {
   uint64_t chipid = ESP.getEfuseMac();
-  sprintf(qnode_name, "OAS_%04X", (uint16_t)chipid);
+  sprintf(qnode_name, "OASIS_%04X", (uint16_t)chipid);
   Serial.println(qnode_name);
   return qnode_name;
 }
