@@ -192,6 +192,17 @@ void loopDisplay() {
 //  displayInfo();
 }
 
+
+void displayPreProcess() {
+  display.clearDisplay();     // Clear display buffer
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+}
+void displayPostProcess() {
+  display.display();
+}
+
 char tmpLine[256];
 void displayInfo() {
   display.clearDisplay();     // Clear display buffer
@@ -209,7 +220,7 @@ void displayInfo() {
   displayLine(4, tmpLine);
   display.display();
 }
-void displayLine(int line_no, char *line) {
+void displayLine(int line_no, const char *line) {
   display.setCursor(0, line_no*15);     // Start at top-left corner
   display.print(line);
   

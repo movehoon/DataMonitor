@@ -24,11 +24,16 @@ LedIndicator ledBle;
 LedIndicator ledWifi;
 
 int mode;
+int lcd_init_count = 30;
+bool system_ready = false;
 
 bool req_report_ble_f;
 bool req_report_wifi_f;
 
+bool recv_packet_f;
+int recv_packet_count;
 
+bool req_led_refresh_f;
 
 int count;
 char buff[256];
@@ -44,23 +49,34 @@ void IRAM_ATTR onTimer(){
 
   timer_count_100ms++;
 
+  // Process 100ms periods
+  req_report_ble_f = true;
+  req_led_refresh_f = true;
+
+  if (lcd_init_count) {
+    lcd_init_count--;
+  }
+
+  if(recv_packet_f) {
+    recv_packet_f = false;
+    recv_packet_count++;
+  }
+
+  // Process 200ms Periods
   if ((timer_count_100ms%2)==0) {
     digitalWrite(LED_BUILTIN, ledBle.process());
     digitalWrite(LED_WIFI, ledWifi.process());
   }
 
+  // Process 500ms Periods
   if ((timer_count_100ms%5)==0) {
     RequestWifiProcess();
   }
 
-  if ((timer_count_100ms%10)==0) {
-  }
-
-  req_report_ble_f = true;
+  // Process 1s Periods
   if ((timer_count_100ms%10)==0) {
     req_report_wifi_f = true;
   }
-
 
   portEXIT_CRITICAL_ISR(&timerMux);
   // Give a semaphore that we can check in the loop
@@ -77,6 +93,7 @@ const char *GetDeviceName() {
   return qnode_name;
 }
 
+char disp_buff[32];
 
 char tmp_msg[256];
 void setup()
@@ -124,6 +141,8 @@ void setup()
   // Start an alarm
   timerAlarmEnable(timer);
   // ----- Start Timer -----//  
+
+  system_ready = true;
 }
 
 void loop()
@@ -165,6 +184,54 @@ void loop()
     if (ble_message.length() > 0) {
       parse((char *)ble_message.c_str());
     }
+  }
+
+
+  if (!lcd_init_count && req_led_refresh_f) {
+    req_led_refresh_f = false;
+    
+    displayPreProcess();
+
+    displayLine(1, GetDeviceName());
+    
+    if (mode) {
+      if (GetWifiStatus() == 0) {
+        strcpy(disp_buff, "WiFi Disconnect");
+      }
+      else if (GetWifiStatus() == 1) {
+        strcpy(disp_buff, "WiFi AP Connected");
+      }
+      else if (GetWifiStatus() == 2) {
+        strcpy(disp_buff, "WiFi Connected");
+      }
+    }
+    else {
+      if (BleConnected()) {
+        strcpy(disp_buff, "BT Connected");
+      }
+      else {
+        strcpy(disp_buff, "BT Disconnect");
+      }
+    }
+    displayLine(2, disp_buff);
+
+    if (recv_packet_count%4 ==0) {
+      strcpy(disp_buff, "Data -");
+    }
+    else if (recv_packet_count%4 == 1) {
+      strcpy(disp_buff, "Data \\");
+    }
+    else if (recv_packet_count%4 == 2) {
+      strcpy(disp_buff, "Data |");
+    }
+    else if (recv_packet_count%4 == 3) {
+      strcpy(disp_buff, "Data /");
+    }
+    displayLine(3, disp_buff);
+
+    displayLine(4, "from OnAirSoft");
+    
+    displayPostProcess();
   }
 
   serialEvent();
