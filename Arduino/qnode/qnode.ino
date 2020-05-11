@@ -297,10 +297,23 @@ void loop()
     displayLine(1, GetDeviceName());
     
     if (mode) {
-      strcpy(disp_buff, "Mode:WiFi");
+      if (GetWifiStatus() == 0) {
+        strcpy(disp_buff, "WiFi Disconnect");
+      }
+      else if (GetWifiStatus() == 1) {
+        strcpy(disp_buff, "WiFi AP Connected");
+      }
+      else if (GetWifiStatus() == 2) {
+        strcpy(disp_buff, "WiFi Connected");
+      }
     }
     else {
-      strcpy(disp_buff, "Mode:BT");
+      if (BleConnected()) {
+        strcpy(disp_buff, "BT Connected");
+      }
+      else {
+        strcpy(disp_buff, "BT Disconnect");
+      }
     }
     displayLine(2, disp_buff);
 
