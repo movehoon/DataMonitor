@@ -22,6 +22,13 @@ const int FILE_MAX = 1024 * 10;  //10KB
 char filebuff[FILE_MAX];
 int file_pnt = 0;
 
+float SDUsedBytes() {
+  return SD.usedBytes();
+}
+float SDTotalBytes() {
+  return SD.totalBytes();
+}
+
 char * GetFileUri(int index) {
   sprintf(filename, "/%s%05d.%s", FILE_PREFIX, index, FILE_EXT);
   return filename;

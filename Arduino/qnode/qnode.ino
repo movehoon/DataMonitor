@@ -49,21 +49,23 @@ enum {
 //#01:STOPX=1
 
 
-// pin 5 on the RGB shield is button 1
-// (button press will be shown on the iPhone app)
-const uint32_t button = 0;
 
 LedIndicator ledIndicator;
 
 const int LED_FREQ = 5000;
 
 int mode;
+int lcd_init_count = 30;
+bool system_ready = false;
 
 bool req_report_ble_f;
 bool req_report_wifi_f;
 bool req_titan_monitor_f;
 
 int test_led_count;
+
+bool recv_packet_f;
+int recv_packet_count;
 
 float curqa;
 float curqd;
@@ -89,23 +91,29 @@ void IRAM_ATTR onTimer(){
 
   timer_count_100ms++;
 
-  if (timer_count_100ms%2) {
+  if (lcd_init_count) {
+    lcd_init_count--;
+  }
+
+  if(recv_packet_f) {
+    recv_packet_f = false;
+    recv_packet_count++;
+  }
+
+  if ((timer_count_100ms%2)==0) {
     digitalWrite(LED_BUILTIN, ledIndicator.process());
   }
 
-  if (timer_count_100ms%5) {
+  if ((timer_count_100ms%5)==0) {
     RequestWifiProcess();
   }
 
-  if (timer_count_100ms % 10) {
+  if ((timer_count_100ms%10)==0) {
     test_led_count++;
-  }
-
-  req_report_ble_f = true;
-  if (timer_count_100ms % 10) {
     req_report_wifi_f = true;
   }
 
+  req_report_ble_f = true;
   req_titan_monitor_f = true;
 
   portEXIT_CRITICAL_ISR(&timerMux);
@@ -119,10 +127,11 @@ char qnode_name[32];
 const char *GetDeviceName() {
   uint64_t chipid = ESP.getEfuseMac();
   sprintf(qnode_name, "QNODE_%04X", (uint16_t)chipid);
-  Serial.println(qnode_name);
+//  Serial.println(qnode_name);
   return qnode_name;
 }
 
+char disp_buff[32];
 void LedSetup() {
   ledcSetup(LED_B, LED_FREQ, 8);
   ledcAttachPin(PIN_LED_B, LED_B);
@@ -175,10 +184,9 @@ void setup()
 
   LedSetup();
 
-  pinMode(button, INPUT);
   pinMode(PIN_MODE, INPUT);
   mode = digitalRead(PIN_MODE);
-  mode = 0;
+//  mode = 0;
   printf("mode is %d\n", mode);
 
   LoadPreference();
@@ -187,7 +195,7 @@ void setup()
   printf("ip=%s\n", GetPreferenceIP());
 
   setupDisplay();
-//  setupSdcard();
+  setupSdcard();
 
   if (mode)
     setupWifi();
@@ -209,6 +217,8 @@ void setup()
   // Start an alarm
   timerAlarmEnable(timer);
   // ----- Start Timer -----//  
+
+  system_ready = true;
 }
 
 void Send2Titan(const char *msg) {
@@ -281,6 +291,40 @@ void loop()
     }
   }
 
+  if (!lcd_init_count) {
+    displayPreProcess();
+
+    displayLine(1, GetDeviceName());
+    
+    if (mode) {
+      strcpy(disp_buff, "Mode:WiFi");
+    }
+    else {
+      strcpy(disp_buff, "Mode:BT");
+    }
+    displayLine(2, disp_buff);
+
+    if (recv_packet_count%4 ==0) {
+      strcpy(disp_buff, "Data -");
+    }
+    else if (recv_packet_count%4 == 1) {
+      strcpy(disp_buff, "Data \\");
+    }
+    else if (recv_packet_count%4 == 2) {
+      strcpy(disp_buff, "Data |");
+    }
+    else if (recv_packet_count%4 == 3) {
+      strcpy(disp_buff, "Data /");
+    }
+    displayLine(3, disp_buff);
+
+    float sdUsed = SDUsedBytes();
+    float sdTotal = SDTotalBytes();
+    sprintf(disp_buff, "[SD]%0.1f/%0.1fG", sdUsed / (1024*1024*1024), sdTotal / (1024 * 1024 * 1024));    
+    displayLine(4, disp_buff);
+    displayPostProcess();
+  }
+
   serialEvent();
 }
 
@@ -325,7 +369,7 @@ void serialEvent () {
 
       parseTitan((char *)recv_cmd2);
 
-
+      recv_packet_f = true;
 
 //      sprintf(buff, "{CURQA:%f}\r\n", curqa);
 //      Serial.print(buff);

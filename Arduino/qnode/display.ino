@@ -106,7 +106,7 @@ void setupDisplay() {
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
+//    for(;;); // Don't proceed, loop forever
   }
 //  display.setFont(&FreeMono9pt7b);
   display.setFont(&FreeSans9pt7b);
@@ -127,6 +127,28 @@ void loopDisplay() {
 //  displayInfo();
 }
 
+void displayPreProcess() {
+  display.clearDisplay();     // Clear display buffer
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+}
+void displayPostProcess() {
+  display.display();
+}
+
+void displayLines(const char *line1, const char *line2, const char *line3, const char *line4) {
+  display.clearDisplay();     // Clear display buffer
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+  displayLine(1, line1);
+  displayLine(2, line2);
+  displayLine(3, line3);
+  displayLine(4, line4);
+  display.display();
+}
+
 char tmpLine[256];
 void displayInfo() {
   display.clearDisplay();     // Clear display buffer
@@ -134,7 +156,7 @@ void displayInfo() {
   display.setTextColor(SSD1306_WHITE); // Draw white text
   display.cp437(true);         // Use full 256 char 'Code Page 437' font
   sprintf(tmpLine, "[O]AP:OAS");
-  displayLine(1, tmpLine);
+  displayLine(1, (char *)GetDeviceName());
   displayLine(2, "line22");
 //  sprintf(tmpLine, "C=%1.4f", curqa);
   displayLine(3, tmpLine);
@@ -144,8 +166,7 @@ void displayInfo() {
   displayLine(4, tmpLine);
   display.display();
 }
-void displayLine(int line_no, char *line) {
+void displayLine(int line_no, const char *line) {
   display.setCursor(0, line_no*15);     // Start at top-left corner
   display.print(line);
-  
 }
