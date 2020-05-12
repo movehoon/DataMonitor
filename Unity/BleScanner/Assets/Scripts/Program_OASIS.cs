@@ -15,7 +15,9 @@ public class Program_OASIS : MonoBehaviour
     public InputField inputfield_AP;
     public InputField inputfield_PW;
 
-    Dictionary<string, string> slot = new Dictionary<string, string>();
+    //Dictionary<string, string> slot = new Dictionary<string, string>();
+
+    List<Slot> slots = new List<Slot>();
 
     public void ScanBle()
     {
@@ -29,6 +31,13 @@ public class Program_OASIS : MonoBehaviour
         {
             BleManager.Instance.Disconnect();
         }
+    }
+
+    public void ClearInformation()
+    {
+        slots.Clear();
+        text_Message.text = "";
+        text_Decode.text = "";
     }
 
     int count;
@@ -72,12 +81,32 @@ public class Program_OASIS : MonoBehaviour
             string[] pairs = v.Trim().Split(separator_level2, 2, System.StringSplitOptions.RemoveEmptyEntries);
             if (pairs.Length == 2)
             {
-                slot[pairs[0].Trim()] = pairs[1].Trim();
+                bool _found = false;
+                foreach (Slot s in slots)
+                {
+                    if (s.Key == pairs[0].Trim())
+                    {
+                        _found = true;
+                        s.Value = pairs[1].Trim();
+                        s.count++;
+                        TimeSpan timeSpan = System.DateTime.Now - s.time;
+                        s.duration = (int)timeSpan.TotalMilliseconds;
+                        s.time = System.DateTime.Now;
+                        break;
+                    }
+                }
+                if (!_found)
+                {
+                    Slot s = new Slot();
+                    s.Key = pairs[0].Trim();
+                    s.Value = pairs[1].Trim();
+                    s.count = 1;
+                    s.duration = 0;
+                    s.time = System.DateTime.Now;
+                    slots.Add(s);
+                }
             }
-        }
-        foreach (KeyValuePair<string, string> kvp in slot)
-        {
-            Debug.Log("Key=" + kvp.Key + ", Value=" + kvp.Value);
+
         }
     }
 
@@ -181,14 +210,10 @@ public class Program_OASIS : MonoBehaviour
             {
                 Decode(message_line);
                 text_Decode.text = "";
-                foreach (KeyValuePair<string, string> kvp in slot)
+
+                foreach (Slot s in slots)
                 {
-                    text_Decode.text += kvp.Key + "=" + kvp.Value + Environment.NewLine;
-                    //Debug.Log("Key=" + kvp.Key + ", Value=" + kvp.Value);
-                    if (kvp.Key.ToUpper() == "AP")
-                        inputfield_AP.text = kvp.Value;
-                    else if (kvp.Key.ToUpper() == "PW")
-                        inputfield_PW.text = kvp.Value;
+                    text_Decode.text += s.Key + "=" + s.Value + "      (" + s.duration.ToString() + "ms, " + s.count.ToString() + ")" + Environment.NewLine;
                 }
             }
         }
