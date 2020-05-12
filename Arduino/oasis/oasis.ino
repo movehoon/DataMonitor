@@ -110,7 +110,6 @@ void setup()
 
   pinMode(PIN_MODE, INPUT);
   mode = digitalRead(PIN_MODE);
-  mode = 0;
   printf("mode is %d\n", mode);
 
   LoadPreference();
@@ -274,6 +273,8 @@ void serialEvent () {
       Serial.printf("[U2]%s\n", recv_cmd2);
 
       SendSplit((uint8_t *)recv_cmd2, strlen((char *)recv_cmd2), 20);
+
+      recv_packet_f = true;
 
       cmd2_index = 0;
       continue;
