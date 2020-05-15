@@ -115,9 +115,9 @@ public class Program_OASIS : MonoBehaviour
     {
         stack_string += msg;
         int newLine = stack_string.IndexOf(Environment.NewLine);
-        Debug.Log("newLine: " + newLine);
         if (newLine > 0)
         {
+            Debug.Log("newLine: " + newLine);
             string tmpString = stack_string;
             stack_string = "";
             return tmpString;
@@ -210,10 +210,9 @@ public class Program_OASIS : MonoBehaviour
             {
                 Decode(message_line);
                 text_Decode.text = "";
-
                 foreach (Slot s in slots)
                 {
-                    text_Decode.text += s.Key + "=" + s.Value + "      (" + s.duration.ToString() + "ms, " + s.count.ToString() + ")" + Environment.NewLine;
+                    text_Decode.text += s.Key + "=" + s.Value + "   (" + s.duration.ToString() + "ms, " + s.count.ToString() + ")" + Environment.NewLine;
                 }
             }
         }
