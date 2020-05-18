@@ -226,8 +226,6 @@ void Send2Titan(const char *msg) {
   digitalWrite(PIN_485EN, HIGH);
   Serial2.write(msg);
   Serial2.flush();
-  Serial2.write("\r\n");
-  Serial2.flush();
   digitalWrite(PIN_485EN, LOW);
 }
 
