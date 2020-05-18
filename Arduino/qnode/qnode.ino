@@ -222,8 +222,11 @@ void setup()
 }
 
 void Send2Titan(const char *msg) {
+  printf("Send2Titan %s\n", msg);
   digitalWrite(PIN_485EN, HIGH);
   Serial2.write(msg);
+  Serial2.flush();
+  Serial2.write("\r\n");
   Serial2.flush();
   digitalWrite(PIN_485EN, LOW);
 }
@@ -286,8 +289,8 @@ void loop()
 
     String ble_message = GetBleMessage();
     if (ble_message.length() > 0) {
-      parse((char *)ble_message.c_str());
       Send2Titan(ble_message.c_str());
+      parse((char *)ble_message.c_str());
     }
   }
 
@@ -363,6 +366,11 @@ void serialEvent () {
       recv_cmd[cmd_index] = 0x00;
 
       Serial.printf("[U1]%s\n", recv_cmd);
+
+      if (recv_cmd[0] == '@') {
+        Send2Titan((const char *)recv_cmd);
+      }
+
       parse((char *)recv_cmd);
 
       cmd_index = 0;
