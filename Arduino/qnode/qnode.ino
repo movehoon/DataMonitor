@@ -1,5 +1,12 @@
 #include "led_indicator.h"
 
+#define MODEL_TITAN
+//#define MODEL_QNODE
+
+#ifdef MODEL_QNODE
+#define ENABLE_WIFI
+#endif
+
 #define PREFS_MODE "MODE"
 #define PREFS_AP "AP"
 #define PREFS_PW "PW"
@@ -185,8 +192,10 @@ void setup()
   LedSetup();
 
   pinMode(PIN_MODE, INPUT);
+  mode = 0;
+  #ifdef ENABLE_WIFI
   mode = digitalRead(PIN_MODE);
-//  mode = 0;
+  #endif
   printf("mode is %d\n", mode);
 
   LoadPreference();
