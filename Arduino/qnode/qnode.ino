@@ -120,6 +120,10 @@ void IRAM_ATTR onTimer(){
     req_report_wifi_f = true;
   }
 
+  if ((timer_count_100ms%100)==0) {
+    timer_count_100ms = 0;
+  }
+
   req_report_ble_f = true;
   req_titan_monitor_f = true;
 
@@ -133,7 +137,7 @@ void IRAM_ATTR onTimer(){
 char qnode_name[32];
 const char *GetDeviceName() {
   uint64_t chipid = ESP.getEfuseMac();
-  sprintf(qnode_name, "QNODE_%04X", (uint16_t)chipid);
+  sprintf(qnode_name, "TITAN_%04X", (uint16_t)chipid);
 //  Serial.println(qnode_name);
   return qnode_name;
 }
@@ -430,7 +434,7 @@ void parseTitan(char* cmd) {
   p_token = strtok(cmd, ":");
 
   if (p_token) {
-    if (strncmp(p_token, "#01", 3) == 0) {
+    if (strncmp(p_token, "#", 1) == 0) {
       p_token = strtok(NULL, ":");
 //      Serial.println(p_token);
 

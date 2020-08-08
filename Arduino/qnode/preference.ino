@@ -8,11 +8,14 @@
 #define PREFS_PW_1 "PW_1"
 #define PREFS_IP "IP"
 #define PREFS_IP_1 "IP_1"
+#define PREFS_ID  "ID"
+#define PREFS_ID_1 "ID_1"
 
 #define PREFS_DEFAULT_MODE "BT"
 #define PREFS_DEFAULT_AP ""
 #define PREFS_DEFAULT_PW ""
 #define PREFS_DEFAULT_IP "121.137.95.17"
+#define PREFS_DEFAULT_ID ""
 
 Preferences prefs;
 
@@ -20,6 +23,7 @@ String md;
 String ap;
 String pw;
 String ip;
+String id;
 
 
 void LoadPreference() {
@@ -59,6 +63,14 @@ const char *GetPreferenceIP() {
   return ip.c_str();
 }
 
+const char *GetPreferenceID() {
+  id = prefs.getString(PREFS_ID, PREFS_DEFAULT_ID);
+  if (id.length() >= 8) {
+    id += prefs.getString(PREFS_ID, "");
+  }
+  return id.c_str();
+}
+
 //String GetPreference(String key) {
 //  if (key == PREFS_AP) {
 //    ap = prefs.getString(PREFS_AP, PREFS_DEFAULT_AP).c_str();
@@ -95,6 +107,12 @@ void SavePreferenceIP(String value) {
   prefs.putString(PREFS_IP, value.substring(0, 8));
   if (value.length() > 8) {
     prefs.putString(PREFS_IP_1, value.substring(8, 16));
+  }
+}
+void SavePreferenceID(String value) {
+  prefs.putString(PREFS_ID, value.substring(0, 8));
+  if (value.length() > 8) {
+    prefs.putString(PREFS_ID_1, value.substring(8, 16));
   }
 }
 
