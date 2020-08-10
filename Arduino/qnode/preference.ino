@@ -66,7 +66,7 @@ const char *GetPreferenceIP() {
 const char *GetPreferenceID() {
   id = prefs.getString(PREFS_ID, PREFS_DEFAULT_ID);
   if (id.length() >= 8) {
-    id += prefs.getString(PREFS_ID, "");
+    id += prefs.getString(PREFS_ID_1, "");
   }
   return id.c_str();
 }
