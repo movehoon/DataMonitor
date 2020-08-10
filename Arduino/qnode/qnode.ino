@@ -116,6 +116,7 @@ void IRAM_ATTR onTimer(){
   }
 
   if ((timer_count_100ms%10)==0) {
+//    Serial.println(GetDeviceName());
     test_led_count++;
     req_report_wifi_f = true;
   }
@@ -134,10 +135,25 @@ void IRAM_ATTR onTimer(){
 }
 // ----- Timer Setup -----//
 
+char default_name[32];
 char qnode_name[32];
-const char *GetDeviceName() {
+const char *GetDefaultName() {
   uint64_t chipid = ESP.getEfuseMac();
-  sprintf(qnode_name, "TITAN_%04X", (uint16_t)chipid);
+#ifdef MODEL_TITAN
+  sprintf(default_name, "TITAN_%04X", (uint16_t)chipid);
+#elif MODE_QNODE
+  sprintf(default_name, "QNODE_%04X", (uint16_t)chipid);
+#endif
+  return default_name;
+}
+const char *GetRFID() {
+  if (strlen(GetPreferenceID()) > 0)
+    return GetPreferenceID();
+  else
+    return GetDefaultName();
+}
+const char *GetDeviceName() {
+  sprintf(qnode_name, "ARCUS(%s)", GetRFID());
 //  Serial.println(qnode_name);
   return qnode_name;
 }
@@ -203,9 +219,10 @@ void setup()
   printf("mode is %d\n", mode);
 
   LoadPreference();
-  printf("ap=%s\n", GetPreferenceAP());
-  printf("pw=%s\n", GetPreferencePW());
-  printf("ip=%s\n", GetPreferenceIP());
+  printf("AP=%s\n", GetPreferenceAP());
+  printf("PW=%s\n", GetPreferencePW());
+  printf("IP=%s\n", GetPreferenceIP());
+  printf("ID=%s\n", GetPreferenceID());
 
   setupDisplay();
   setupSdcard();
@@ -370,16 +387,54 @@ uint8_t recv_cmd[256];
 uint8_t cmd_index;
 uint8_t recv_cmd2[256];
 uint8_t cmd2_index;
+bool u1_data_catch;
+uint8_t u1_resp_message[32];
 void serialEvent () {
   while(Serial.available()) {
     recv_cmd[cmd_index] = (uint8_t)Serial.read();
     if (recv_cmd[cmd_index] == 0x0A || recv_cmd[cmd_index] == 0x0D) {
       recv_cmd[cmd_index] = 0x00;
 
+      char *p_token;
+      char buf[32];
+      char value[32];
+
       Serial.printf("[U1]%s\n", recv_cmd);
+      u1_data_catch = false;
+
 
       if (recv_cmd[0] == '@') {
-        Send2Titan((const char *)recv_cmd);
+        p_token = strtok((char *)recv_cmd, ":");
+        Serial.print("p_token: ");
+        Serial.println(p_token);
+
+        p_token = strtok(NULL, ";");
+        Serial.print("p_token: ");
+        Serial.println(p_token);
+        while (p_token) {
+          strcpy(buf, p_token);
+          Serial.print("buf: ");
+          Serial.println(buf);
+
+          if (strncmp(buf, "RFID", 4) == 0) {
+            if (buf[4]=='=') {
+              strncpy(value, buf+5, 32);
+              String str = value;
+              SavePreferenceID(str);
+              Serial.print("RFID value: ");
+              Serial.println(value);
+            }
+            String msg = "#01:RFID=" + String(GetRFID());
+//            sprintf(u1_resp_message, "#01:RFID=%s", GetRFID());
+            Serial.println(msg);
+            u1_data_catch = true;
+          }
+          p_token = strtok(NULL, ";");
+        }
+
+        if (!u1_data_catch) {
+          Send2Titan((const char *)recv_cmd);
+        }
       }
 
       parse((char *)recv_cmd);
