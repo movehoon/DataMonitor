@@ -7,6 +7,8 @@
 #define ENABLE_WIFI
 #endif
 
+#define ENABLE_LOGGING
+
 #define PREFS_MODE "MODE"
 #define PREFS_AP "AP"
 #define PREFS_PW "PW"
@@ -83,6 +85,16 @@ int mst;
 int din;
 int dout;
 
+void LogD(const char *message) {
+#ifdef ENABLE_LOGGING
+  Serial.print(message);
+#endif
+}
+void LogDln(const char *message) {
+#ifdef ENABLE_LOGGING
+  Serial.println(message);
+#endif
+}
 
 int count;
 char buff[256];
@@ -252,9 +264,11 @@ void setup()
 }
 
 void Send2Titan(const char *msg) {
+#ifdef ENABLE_LOGGING
   printf("Send2Titan %s\n", msg);
+#endif
   digitalWrite(PIN_485EN, HIGH);
-  Serial2.write(msg);
+  Serial2.println(msg);
   Serial2.flush();
   digitalWrite(PIN_485EN, LOW);
 }
@@ -383,62 +397,77 @@ void SendSplit(uint8_t *buff, int len, int unit)
   }
 }
 
-uint8_t recv_cmd[256];
+uint8_t recv_cmd[256+1];
 uint8_t cmd_index;
-uint8_t recv_cmd2[256];
+uint8_t recv_cmd2[256+1];
 uint8_t cmd2_index;
 bool u1_data_catch;
+uint8_t u1_cmd[256+1];
 uint8_t u1_resp_message[32];
 void serialEvent () {
   while(Serial.available()) {
     recv_cmd[cmd_index] = (uint8_t)Serial.read();
     if (recv_cmd[cmd_index] == 0x0A || recv_cmd[cmd_index] == 0x0D) {
       recv_cmd[cmd_index] = 0x00;
+      memcpy(u1_cmd, recv_cmd, cmd_index+1);
 
       char *p_token;
       char buf[32];
       char value[32];
 
-      Serial.printf("[U1]%s\n", recv_cmd);
+      LogD("[U1]");
+      LogD((const char *)recv_cmd);
+      LogD("\n");
       u1_data_catch = false;
 
 
       if (recv_cmd[0] == '@') {
         p_token = strtok((char *)recv_cmd, ":");
-        Serial.print("p_token: ");
-        Serial.println(p_token);
-
         p_token = strtok(NULL, ";");
-        Serial.print("p_token: ");
-        Serial.println(p_token);
-        while (p_token) {
+        if (p_token) {
           strcpy(buf, p_token);
-          Serial.print("buf: ");
-          Serial.println(buf);
+          
+          LogD("buf: ");
+          LogDln(buf);
 
-          if (strncmp(buf, "RFID", 4) == 0) {
-            if (buf[4]=='=') {
-              strncpy(value, buf+5, 32);
+          if (strncmp(buf, "WID", 3) == 0) {
+            if (buf[3] == '=') {
+              bool valid = false;
+              strncpy(value, buf+4, 32);
               String str = value;
-              SavePreferenceID(str);
-              Serial.print("RFID value: ");
-              Serial.println(value);
+              if (str.length() <= 8) {
+                valid = true;
+                for (uint8_t i=0; i<str.length(); i++) {
+                  if (('A' <= str.charAt(i) && str.charAt(i) <= 'Z') || ('0' <= str.charAt(i) && str.charAt(i) <= '9')) {
+                  }
+                  else {
+                    valid = false;
+                  }
+                }
+                if (valid) {
+                  SavePreferenceID(str);
+                  LogD("RFID value: ");
+                  LogDln(value);
+                }
+              }
+              u1_data_catch = true;
             }
-            String msg = "#01:RFID=" + String(GetRFID());
-//            sprintf(u1_resp_message, "#01:RFID=%s", GetRFID());
-            Serial.println(msg);
+            String msg = "#01:" + String(GetRFID());
+//            sprintf(u1_resp_message, "#01:%s", GetRFID());
+            Serial.println(msg.c_str());
             u1_data_catch = true;
           }
-          p_token = strtok(NULL, ";");
         }
 
         if (!u1_data_catch) {
-          Send2Titan((const char *)recv_cmd);
+          Send2Titan((const char *)u1_cmd);
         }
       }
 
-      parse((char *)recv_cmd);
-
+      if (!u1_data_catch) {
+        parse((char *)u1_cmd);
+      }
+      
       cmd_index = 0;
       continue;
     }
