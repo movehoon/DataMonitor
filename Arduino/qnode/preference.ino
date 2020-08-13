@@ -96,11 +96,17 @@ void SavePreferenceAP(String value) {
   if (value.length() > 8) {
     prefs.putString(PREFS_AP_1, value.substring(8, 16));
   }
+  else {
+    prefs.putString(PREFS_AP_1, "");
+  }
 }
 void SavePreferencePW(String value) {
   prefs.putString(PREFS_PW, value.substring(0, 8));
   if (value.length() > 8) {
     prefs.putString(PREFS_PW_1, value.substring(8, 16));
+  }
+  else {
+    prefs.putString(PREFS_PW_1, "");
   }
 }
 void SavePreferenceIP(String value) {
@@ -108,11 +114,17 @@ void SavePreferenceIP(String value) {
   if (value.length() > 8) {
     prefs.putString(PREFS_IP_1, value.substring(8, 16));
   }
+  else {
+    prefs.putString(PREFS_IP_1, "");
+  }
 }
 void SavePreferenceID(String value) {
   prefs.putString(PREFS_ID, value.substring(0, 8));
   if (value.length() > 8) {
     prefs.putString(PREFS_ID_1, value.substring(8, 16));
+  }
+  else {
+    prefs.putString(PREFS_ID_1, "");
   }
 }
 

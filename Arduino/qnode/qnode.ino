@@ -5,9 +5,11 @@
 
 #ifdef MODEL_QNODE
 #define ENABLE_WIFI
+#define ENABLE_DISPLAY
 #endif
 
-#define ENABLE_LOGGING
+//#define ENABLE_SDCARD
+//#define ENABLE_DEBUGGING
 
 #define PREFS_MODE "MODE"
 #define PREFS_AP "AP"
@@ -86,12 +88,12 @@ int din;
 int dout;
 
 void LogD(const char *message) {
-#ifdef ENABLE_LOGGING
+#ifdef ENABLE_DEBUGGING
   Serial.print(message);
 #endif
 }
 void LogDln(const char *message) {
-#ifdef ENABLE_LOGGING
+#ifdef ENABLE_DEBUGGING
   Serial.println(message);
 #endif
 }
@@ -236,8 +238,12 @@ void setup()
   printf("IP=%s\n", GetPreferenceIP());
   printf("ID=%s\n", GetPreferenceID());
 
+#ifdef ENABLE_DISPLAY
   setupDisplay();
+#endif
+#ifdef ENABLE_SDCARD
   setupSdcard();
+#endif
 
   if (mode)
     setupWifi();
@@ -248,8 +254,7 @@ void setup()
   // Create semaphore to inform us when the timer has fired
   timerSemaphore = xSemaphoreCreateBinary();
   // Use 1st timer of 4 (counted from zero).
-  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
-  // info).
+  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more info).
   timer = timerBegin(0, 80, true);
   // Attach onTimer function to our timer.
   timerAttachInterrupt(timer, &onTimer, true);
@@ -336,6 +341,7 @@ void loop()
     }
   }
 
+#ifdef ENABLE_DISPLAY
   if (!lcd_init_count) {
     displayPreProcess();
 
@@ -376,12 +382,15 @@ void loop()
     }
     displayLine(3, disp_buff);
 
+#ifdef ENABLE_SDCARD
     float sdUsed = SDUsedBytes();
     float sdTotal = SDTotalBytes();
     sprintf(disp_buff, "[SD]%0.1f/%0.1fG", sdUsed / (1024*1024*1024), sdTotal / (1024 * 1024 * 1024));    
     displayLine(4, disp_buff);
+#endif
     displayPostProcess();
   }
+#endif
 
   serialEvent();
 }
@@ -390,10 +399,12 @@ void SendSplit(uint8_t *buff, int len, int unit)
 {
   uint8_t sendCount = len / unit + 1;
   for (uint8_t i=0; i<sendCount; i++) {
-    if (i < sendCount-1)
+    if (i < sendCount-1) {
       BleSend(buff+(i*unit), unit);
-    else
-      BleSend(buff+(i*unit), len%unit);
+    }
+    else {
+      BleSend(buff+(i*unit), len%unit+1);
+    }
   }
 }
 
@@ -478,12 +489,16 @@ void serialEvent () {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {
       recv_cmd2[cmd2_index+1] = 0x00;
-      Serial.printf("[U2]%s\n", recv_cmd2);
+      Serial.printf("%s\n", recv_cmd2);
+#ifdef ENABLE_SDCARD
       WriteMessage((char *)recv_cmd2);
+#endif
 
       SendSplit((uint8_t *)recv_cmd2, strlen((char *)recv_cmd2), 20);
 
+#ifdef ENABBLE_WIFI
       parseTitan((char *)recv_cmd2);
+#endif
 
       recv_packet_f = true;
 
@@ -583,9 +598,9 @@ void parseTitan(char* cmd) {
 
 char msg[256];
 void parse(char* cmd) {
-  Serial.print("parsing: ");
-  Serial.println(cmd);
-  
+  LogD("parsing: ");
+  LogDln(cmd);
+ 
   if (strlen(cmd)==0)
     return;
   
