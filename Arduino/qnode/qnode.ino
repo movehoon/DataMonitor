@@ -655,6 +655,8 @@ void parse(char* cmd) {
     ESP.restart();
   }
   else {
-    Serial.printf("Unknown Command %s\n", cmd);
+    LogD("Unknown Command");
+    LogDln(cmd);
+//    Serial.printf("Unknown Command %s\n", cmd);
   }
 }
