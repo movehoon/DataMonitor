@@ -488,8 +488,8 @@ void serialEvent () {
   while(Serial2.available()) {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {
+      Serial.printf("%s", recv_cmd2);
       recv_cmd2[cmd2_index+1] = 0x00;
-      Serial.printf("%s\n", recv_cmd2);
 #ifdef ENABLE_SDCARD
       WriteMessage((char *)recv_cmd2);
 #endif
@@ -513,6 +513,7 @@ void serialEvent () {
 //          BleSend(recv_cmd2+(i*20), cmd2_index%20);
 //      }
 
+      memset(recv_cmd2, 0, sizeof(recv_cmd2));
       cmd2_index = 0;
       continue;
     }
