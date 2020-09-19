@@ -8,7 +8,7 @@
 #define ENABLE_DISPLAY
 #endif
 
-//#define ENABLE_SDCARD
+#define ENABLE_SDCARD
 //#define ENABLE_DEBUGGING
 
 #define PREFS_MODE "MODE"

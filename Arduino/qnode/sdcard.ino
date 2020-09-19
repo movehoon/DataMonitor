@@ -14,11 +14,12 @@ void deleteFile(fs::FS &fs, const char * path);
 void testFileIO(fs::FS &fs, const char * path);
 
 char filename[32];
+const char * DIR_URI = "/qnode_data";
 const char * FILE_PREFIX = "qnode_data_";
 const char * FILE_EXT = "txt";
 const int TOTAL_INDEX = 100000;
 int file_index = 1;
-const int FILE_MAX = 1024 * 10;  //10KB
+const int FILE_MAX = 1024 * 32;  //32KB
 char filebuff[FILE_MAX];
 int file_pnt = 0;
 
@@ -54,7 +55,7 @@ void WriteMessage(char *message) {
     file_pnt += len;
   }
   else {
-    Serial.println("Save file");
+//    Serial.println("Save file");
     file_pnt = 0;
     writeFile(SD, GetFileUri(file_index), filebuff);
     
@@ -92,8 +93,6 @@ void setupSdcard() {
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
-
-
 //  Serial.println(GetFileUri(1));
 
   file_index = findLatestIndex();
@@ -109,7 +108,7 @@ void setupSdcard() {
 //  }
 
   listDir(SD, "/", 0);
-//  createDir(SD, "/qnode_data");
+//  createDir(SD, DIR_URI);
 //  listDir(SD, "/", 0);
 //  removeDir(SD, "/mydir");
 //  listDir(SD, "/", 2);
@@ -122,6 +121,7 @@ void setupSdcard() {
 //  testFileIO(SD, "/test.txt");
   Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
   Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));  
+  Serial.printf("Save file from %s\n", GetFileUri(file_index));
 }
 
 void loopSdcard() {
