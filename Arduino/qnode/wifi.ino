@@ -53,7 +53,7 @@ void wifi_send(char *message) {
 
 void setupWifi() {
 //  getMacAddress();
-  sprintf(topic, "%s/%s", TOPIC_PREFIX, GetDeviceName());
+  sprintf(topic, "%s/%s", TOPIC_PREFIX, GetDeviceName(""));
   sprintf(topic_sub, "%s/sub", topic);
   Serial.print("topic: ");
   Serial.println(topic);

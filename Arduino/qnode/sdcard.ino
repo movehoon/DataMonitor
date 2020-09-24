@@ -22,6 +22,7 @@ int file_index = 1;
 const int FILE_MAX = 1024 * 32;  //32KB
 char filebuff[FILE_MAX];
 int file_pnt = 0;
+bool found_sdcard = false;
 
 float SDUsedBytes() {
   return SD.usedBytes();
@@ -48,6 +49,9 @@ int findLatestIndex() {
 }
 
 void WriteMessage(char *message) {
+  if (!found_sdcard)
+    return;
+    
 //  Serial.println(file_pnt);
   int len = strlen(message);
   if (file_pnt + len < FILE_MAX) {
@@ -122,6 +126,8 @@ void setupSdcard() {
   Serial.printf("Total space: %lluMB\n", SD.totalBytes() / (1024 * 1024));
   Serial.printf("Used space: %lluMB\n", SD.usedBytes() / (1024 * 1024));  
   Serial.printf("Save file from %s\n", GetFileUri(file_index));
+
+  found_sdcard = true;
 }
 
 void loopSdcard() {

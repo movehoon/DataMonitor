@@ -156,7 +156,7 @@ void displayInfo() {
   display.setTextColor(SSD1306_WHITE); // Draw white text
   display.cp437(true);         // Use full 256 char 'Code Page 437' font
   sprintf(tmpLine, "[O]AP:OAS");
-  displayLine(1, (char *)GetDeviceName());
+  displayLine(1, (char *)GetDeviceName(""));
   displayLine(2, "line22");
 //  sprintf(tmpLine, "C=%1.4f", curqa);
   displayLine(3, tmpLine);

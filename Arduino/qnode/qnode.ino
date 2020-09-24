@@ -27,6 +27,8 @@
 #define LED_G 1
 #define LED_B 2
 
+#define TITAN_ID_MAX 100
+
 enum {
   LED_NONE,
   LED_BLE_RUNNING,
@@ -86,6 +88,7 @@ int vx;
 int mst;
 int din;
 int dout;
+char WID[32];
 
 void LogD(const char *message) {
 #ifdef ENABLE_DEBUGGING
@@ -100,6 +103,7 @@ void LogDln(const char *message) {
 
 int count;
 char buff[256];
+char titan2_buff[256];
 // ----- Timer Setup -----//
 hw_timer_t * timer = NULL;
 volatile SemaphoreHandle_t timerSemaphore;
@@ -130,7 +134,7 @@ void IRAM_ATTR onTimer(){
   }
 
   if ((timer_count_100ms%10)==0) {
-//    Serial.println(GetDeviceName());
+//    Serial.println(GetDeviceName(""));
     test_led_count++;
     req_report_wifi_f = true;
   }
@@ -166,8 +170,13 @@ const char *GetRFID() {
   else
     return GetDefaultName();
 }
-const char *GetDeviceName() {
-  sprintf(qnode_name, "ARCUS(%s)", GetRFID());
+const char *GetDeviceName(const char *name) {
+  if (strlen(name) > 0) {
+    sprintf(qnode_name, "ARCUS(%s)", name);
+  }
+  else {
+    sprintf(qnode_name, "ARCUS(%s)", GetRFID());
+  }
 //  Serial.println(qnode_name);
   return qnode_name;
 }
@@ -211,6 +220,31 @@ void LedSetup() {
   ledcWrite(LED_B, 0);
 }
 
+int found_titanID = 0;
+void SearchTitanID() {
+  Serial.println("SearchTitanID");
+  delay(100);
+  for (uint8_t i=0; i<TITAN_ID_MAX; i++) {
+    sprintf(titan2_buff, "@%02d:FIRMVS\n", i);
+    Serial2.print(titan2_buff);
+    delay(10);
+    serialEvent();
+    if (found_titanID > 0) {
+      break;
+    }
+  }
+}
+
+void GetTitanWID() {
+  delay(100);
+  Serial.println("GetTitanWID");
+  sprintf(titan2_buff, "@%02d:WID\n", found_titanID);
+  Serial.print(titan2_buff);
+  Serial2.print(titan2_buff);
+  delay(5);
+  serialEvent();
+}
+
 char tmp_msg[256];
 void setup()
 {
@@ -238,6 +272,9 @@ void setup()
   printf("IP=%s\n", GetPreferenceIP());
   printf("ID=%s\n", GetPreferenceID());
 
+  SearchTitanID();
+  GetTitanWID();
+
 #ifdef ENABLE_DISPLAY
   setupDisplay();
 #endif
@@ -248,7 +285,7 @@ void setup()
   if (mode)
     setupWifi();
   else
-    setupBle();
+    setupBle(WID);
 
   // ----- Start Timer -----//
   // Create semaphore to inform us when the timer has fired
@@ -345,7 +382,7 @@ void loop()
   if (!lcd_init_count) {
     displayPreProcess();
 
-    displayLine(1, GetDeviceName());
+    displayLine(1, GetDeviceName(""));
     
     if (mode) {
       if (GetWifiStatus() == 0) {
@@ -433,42 +470,42 @@ void serialEvent () {
 
 
       if (recv_cmd[0] == '@') {
-        p_token = strtok((char *)recv_cmd, ":");
-        p_token = strtok(NULL, ";");
-        if (p_token) {
-          strcpy(buf, p_token);
-          
-          LogD("buf: ");
-          LogDln(buf);
-
-          if (strncmp(buf, "WID", 3) == 0) {
-            if (buf[3] == '=') {
-              bool valid = false;
-              strncpy(value, buf+4, 32);
-              String str = value;
-              if (str.length() <= 8) {
-                valid = true;
-                for (uint8_t i=0; i<str.length(); i++) {
-                  if (('A' <= str.charAt(i) && str.charAt(i) <= 'Z') || ('0' <= str.charAt(i) && str.charAt(i) <= '9')) {
-                  }
-                  else {
-                    valid = false;
-                  }
-                }
-                if (valid) {
-                  SavePreferenceID(str);
-                  LogD("RFID value: ");
-                  LogDln(value);
-                }
-              }
-              u1_data_catch = true;
-            }
-            String msg = "#01:" + String(GetRFID());
-//            sprintf(u1_resp_message, "#01:%s", GetRFID());
-            Serial.println(msg.c_str());
-            u1_data_catch = true;
-          }
-        }
+//        p_token = strtok((char *)recv_cmd, ":");
+//        p_token = strtok(NULL, ";");
+//        if (p_token) {
+//          strcpy(buf, p_token);
+//          
+//          LogD("buf: ");
+//          LogDln(buf);
+//
+//          if (strncmp(buf, "WID", 3) == 0) {
+//            if (buf[3] == '=') {
+//              bool valid = false;
+//              strncpy(value, buf+4, 32);
+//              String str = value;
+//              if (str.length() <= 8) {
+//                valid = true;
+//                for (uint8_t i=0; i<str.length(); i++) {
+//                  if (('A' <= str.charAt(i) && str.charAt(i) <= 'Z') || ('0' <= str.charAt(i) && str.charAt(i) <= '9')) {
+//                  }
+//                  else {
+//                    valid = false;
+//                  }
+//                }
+//                if (valid) {
+//                  SavePreferenceID(str);
+//                  LogD("RFID value: ");
+//                  LogDln(value);
+//                }
+//              }
+//              u1_data_catch = true;
+//            }
+//            String msg = "#01:" + String(GetRFID());
+////            sprintf(u1_resp_message, "#01:%s", GetRFID());
+//            Serial.println(msg.c_str());
+//            u1_data_catch = true;
+//          }
+//        }
 
         if (!u1_data_catch) {
           Send2Titan((const char *)u1_cmd);
@@ -496,9 +533,9 @@ void serialEvent () {
 
       SendSplit((uint8_t *)recv_cmd2, strlen((char *)recv_cmd2), 20);
 
-#ifdef ENABBLE_WIFI
+//#ifdef ENABBLE_WIFI
       parseTitan((char *)recv_cmd2);
-#endif
+//#endif
 
       recv_packet_f = true;
 
@@ -526,14 +563,20 @@ void parseTitan(char* cmd) {
   char buf[32];
   char value[32];
 //#01:EX=2;VX=0;MST=0x0;CURQA=-0.0263982;CURQD=0;CURDD=0;DIN=0x0;DOUT=0x0
-//   Serial.print("parsing: ");
-//   Serial.println(cmd);
+   Serial.print("parsing: ");
+   Serial.println(cmd);
   
   char *p_token;
   char *c_token;
   p_token = strtok(cmd, ":");
 
   if (p_token) {
+//    Serial.println("foundID");
+//    Serial.println(p_token);
+    found_titanID = atoi(p_token+1);
+//    Serial.print("Found id ");
+//    Serial.println(found_titanID);
+    
     if (strncmp(p_token, "#", 1) == 0) {
       p_token = strtok(NULL, ":");
 //      Serial.println(p_token);
@@ -591,6 +634,11 @@ void parseTitan(char* cmd) {
 //          Serial.print("DOUT value: ");
 //          Serial.println(dout);
         }
+        else if (strncmp(buf, "WID", 3) == 0) {
+          strcpy(WID, buf+3);
+          Serial.print("Get WID ");
+          Serial.println(WID);
+        }
         p_token = strtok(NULL, ";");
       }
     }
@@ -611,7 +659,7 @@ void parse(char* cmd) {
     // Ignore comment
   }
   else if (strncmp(p_token,"id",2)==0) {
-    sprintf(msg, "id=%s\n", GetDeviceName());
+    sprintf(msg, "id=%s\n", GetDeviceName(""));
     printf(msg);
     SendSplit((uint8_t *)msg, strlen(msg), 20);
   }

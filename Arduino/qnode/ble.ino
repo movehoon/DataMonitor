@@ -112,10 +112,10 @@ void BleSend(uint8_t *buff, uint8_t len) {
   }
 }
 
-void setupBle()
+void setupBle(char *name)
 {
 
-    BLEDevice::init(GetDeviceName());
+    BLEDevice::init(GetDeviceName(name));
     // BLEDevice::setCustomGattsHandler(my_gatts_event_handler);
     // BLEDevice::setCustomGattcHandler(my_gattc_event_handler);
 
