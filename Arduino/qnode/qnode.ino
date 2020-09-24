@@ -222,7 +222,7 @@ void LedSetup() {
 
 int found_titanID = 0;
 void SearchTitanID() {
-  Serial.println("SearchTitanID");
+//  Serial.println("SearchTitanID");
   delay(100);
   for (uint8_t i=0; i<TITAN_ID_MAX; i++) {
     sprintf(titan2_buff, "@%02d:FIRMVS\n", i);
@@ -237,9 +237,9 @@ void SearchTitanID() {
 
 void GetTitanWID() {
   delay(100);
-  Serial.println("GetTitanWID");
+//  Serial.println("GetTitanWID");
   sprintf(titan2_buff, "@%02d:WID\n", found_titanID);
-  Serial.print(titan2_buff);
+//  Serial.print(titan2_buff);
   Serial2.print(titan2_buff);
   delay(5);
   serialEvent();
@@ -563,8 +563,8 @@ void parseTitan(char* cmd) {
   char buf[32];
   char value[32];
 //#01:EX=2;VX=0;MST=0x0;CURQA=-0.0263982;CURQD=0;CURDD=0;DIN=0x0;DOUT=0x0
-   Serial.print("parsing: ");
-   Serial.println(cmd);
+//   Serial.print("parsing: ");
+//   Serial.println(cmd);
   
   char *p_token;
   char *c_token;
@@ -634,10 +634,10 @@ void parseTitan(char* cmd) {
 //          Serial.print("DOUT value: ");
 //          Serial.println(dout);
         }
-        else if (strncmp(buf, "WID", 3) == 0) {
-          strcpy(WID, buf+3);
-          Serial.print("Get WID ");
-          Serial.println(WID);
+        else if (strncmp(buf, "WID=", 4) == 0) {
+          strcpy(WID, buf+4);
+//          Serial.print("Get WID ");
+//          Serial.println(WID);
         }
         p_token = strtok(NULL, ";");
       }
