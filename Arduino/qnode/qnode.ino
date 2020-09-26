@@ -637,7 +637,14 @@ void parseTitan(char* cmd) {
 //          Serial.println(dout);
         }
         else if (strncmp(buf, "WID=", 4) == 0) {
+          if (strlen(WID) > 0) {
+//            ESP.restart();
+          }
           strcpy(WID, buf+4);
+          for (uint8_t i=0; i < sizeof(WID); i++) {
+            if (WID[i] == '\r' || WID[i] == '\n')
+              WID[i] = '\0';
+          }
           Serial.print("Get WID ");
           Serial.println(WID);
         }
