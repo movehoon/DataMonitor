@@ -88,7 +88,7 @@ int vx;
 int mst;
 int din;
 int dout;
-char WID[32];
+char WID[32] = "";
 
 void LogD(const char *message) {
 #ifdef ENABLE_DEBUGGING
@@ -248,6 +248,8 @@ void GetTitanWID() {
 char tmp_msg[256];
 void setup()
 {
+  delay(3000);
+
   Serial.begin(115200);
   Serial2.begin(115200);
 
@@ -636,8 +638,8 @@ void parseTitan(char* cmd) {
         }
         else if (strncmp(buf, "WID=", 4) == 0) {
           strcpy(WID, buf+4);
-//          Serial.print("Get WID ");
-//          Serial.println(WID);
+          Serial.print("Get WID ");
+          Serial.println(WID);
         }
         p_token = strtok(NULL, ";");
       }
