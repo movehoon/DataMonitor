@@ -9,7 +9,7 @@
 #endif
 
 #define ENABLE_SDCARD
-//#define ENABLE_DEBUGGING
+#define ENABLE_DEBUGGING
 
 #define PREFS_MODE "MODE"
 #define PREFS_AP "AP"
@@ -308,7 +308,7 @@ void setup()
 }
 
 void Send2Titan(const char *msg) {
-#ifdef ENABLE_LOGGING
+#ifdef ENABLE_DEBUGGING
   printf("Send2Titan %s\n", msg);
 #endif
   digitalWrite(PIN_485EN, HIGH);
@@ -376,7 +376,7 @@ void loop()
     String ble_message = GetBleMessage();
     if (ble_message.length() > 0) {
       Send2Titan(ble_message.c_str());
-      parse((char *)ble_message.c_str());
+//      parse((char *)ble_message.c_str());
     }
   }
 
@@ -527,7 +527,7 @@ void serialEvent () {
   while(Serial2.available()) {
     recv_cmd2[cmd2_index] = (uint8_t)Serial2.read();
     if (recv_cmd2[cmd2_index] == 0x0A) {
-      Serial.printf("%s", recv_cmd2);
+      Serial.printf("[U2]%s", recv_cmd2);
       recv_cmd2[cmd2_index+1] = 0x00;
 #ifdef ENABLE_SDCARD
       WriteMessage((char *)recv_cmd2);
@@ -535,7 +535,7 @@ void serialEvent () {
 
       SendSplit((uint8_t *)recv_cmd2, strlen((char *)recv_cmd2), 20);
 
-//#ifdef ENABBLE_WIFI
+//#ifdef ENABLE_WIFI
       parseTitan((char *)recv_cmd2);
 //#endif
 

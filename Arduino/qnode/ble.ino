@@ -67,11 +67,11 @@ class BTCallbacks : public BLECharacteristicCallbacks
 
       if (rxValue.length() > 0) {
         ble_message = String(rxValue.c_str());
-        Serial.println("*********");
-        Serial.print("Received Value: ");
+//        Serial.println("*********");
+        Serial.print("[BLE]Received Value: ");
         for (int i = 0; i < rxValue.length(); i++)
           Serial.print(rxValue[i]);
-        Serial.println("*********");
+//        Serial.println("*********");
       }
       
   }
