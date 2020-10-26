@@ -1,3 +1,4 @@
+#if 0
 #include "WiFi.h"
 #include "PubSubClient.h"
 
@@ -115,3 +116,4 @@ void loopWifi() {
     client.loop();
   }
 }
+#endif

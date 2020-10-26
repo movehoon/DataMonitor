@@ -1,11 +1,19 @@
 #include "led_indicator.h"
 
+#include "WiFi.h"
+#include "ESPAsyncWebServer.h"
+
 #define MODEL_TITAN
 //#define MODEL_QNODE
 
 #ifdef MODEL_QNODE
 #define ENABLE_WIFI
 #define ENABLE_DISPLAY
+#endif
+
+#ifdef MODEL_TITAN
+//#define ENABLE_BLE
+#define ENABLE_WS
 #endif
 
 #define ENABLE_SDCARD
@@ -61,6 +69,13 @@ enum {
 //@01:STOPX
 //#01:STOPX=1
 
+const char* ssid = "KT_GiGA_2G_Wave2_F763";
+const char* password =  "0ahebzh872";
+
+AsyncWebServer server(80);
+AsyncWebSocket ws("/titan");
+AsyncWebSocketClient *wsClient = 0;
+char ws_msg[256];
 
 
 LedIndicator ledIndicator;
@@ -130,7 +145,7 @@ void IRAM_ATTR onTimer(){
   }
 
   if ((timer_count_100ms%5)==0) {
-    RequestWifiProcess();
+//    RequestWifiProcess();
   }
 
   if ((timer_count_100ms%10)==0) {
@@ -245,6 +260,50 @@ void GetTitanWID() {
   serialEvent();
 }
 
+void onWsEvent( AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len ) {
+  wsClient = client;
+  if(type == WS_EVT_CONNECT) {
+    Serial.println("Websocket client connection received");
+  }
+  else if(type == WS_EVT_DISCONNECT) {
+    Serial.println("Client disconnected");
+  }
+  else if(type == WS_EVT_DATA) {
+    Serial.println("Data received: ");
+    for(int i=0; i < len; i++) {
+      Serial.print(data[i]);
+      Serial.print("|");
+    }
+    Serial.println();
+
+    memset(titan2_buff, 0, sizeof(titan2_buff));
+    if (len > sizeof(titan2_buff))
+      len = sizeof(titan2_buff);
+    memcpy(titan2_buff, data, len);
+    Send2Titan(titan2_buff);
+    
+//    count++;
+//    sprintf(ws_msg, "Reply %d", count);
+//    client->text(ws_msg);
+  }
+}
+
+void setupWS(){
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi..");
+  }
+
+  Serial.println(WiFi.localIP());
+
+  ws.onEvent(onWsEvent);
+  server.addHandler(&ws);
+
+  server.begin();
+}
+
 char tmp_msg[256];
 void setup()
 {
@@ -284,10 +343,17 @@ void setup()
   setupSdcard();
 #endif
 
-  if (mode)
-    setupWifi();
-  else
+  if (mode) {
+//    setupWifi();
+  }
+  else {
+    #ifdef ENABLE_BLE
     setupBle(WID);
+    #endif
+    #ifdef ENABLE_WS
+    setupWS();
+    #endif
+  }
 
   // ----- Start Timer -----//
   // Create semaphore to inform us when the timer has fired
@@ -337,23 +403,23 @@ void loop()
 //  Serial.print(buff);
 
   if (mode) {
-    loopWifi();
-
-    if (req_report_wifi_f) {
-      req_report_wifi_f = false;
-
-      wifi_send(buff);
-    }
-    
-    if (GetWifiStatus() == 0) {
-      ledIndicator.SetBlinkCount(LED_WIFI_AP_DISCONNECTED);
-    }
-    else if (GetWifiStatus() == 1) {
-      ledIndicator.SetBlinkCount(LED_WIFI_SERVER_DISCONNECTED);
-    }
-    else if (GetWifiStatus() == 2) {
-      ledIndicator.SetBlinkCount(LED_WIFI_RUNNING);
-    }
+//    loopWifi();
+//
+//    if (req_report_wifi_f) {
+//      req_report_wifi_f = false;
+//
+//      wifi_send(buff);
+//    }
+//    
+//    if (GetWifiStatus() == 0) {
+//      ledIndicator.SetBlinkCount(LED_WIFI_AP_DISCONNECTED);
+//    }
+//    else if (GetWifiStatus() == 1) {
+//      ledIndicator.SetBlinkCount(LED_WIFI_SERVER_DISCONNECTED);
+//    }
+//    else if (GetWifiStatus() == 2) {
+//      ledIndicator.SetBlinkCount(LED_WIFI_RUNNING);
+//    }
   }
   else {
     loopBle();
@@ -533,7 +599,15 @@ void serialEvent () {
       WriteMessage((char *)recv_cmd2);
 #endif
 
+#ifdef ENABLE_BLE
       SendSplit((uint8_t *)recv_cmd2, strlen((char *)recv_cmd2), 20);
+#endif
+
+#ifdef ENABLE_WS
+      if (wsClient) {
+        wsClient->text(String((const char *)recv_cmd2));
+      }
+#endif
 
 //#ifdef ENABLE_WIFI
       parseTitan((char *)recv_cmd2);
