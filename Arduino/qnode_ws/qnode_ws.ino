@@ -3,6 +3,9 @@
 
 #define LED_BUILTIN 13
 
+#define DEBUG_SSID "reel"
+#define DEBUG_PASS "ucr201011"
+
 char ssid[32];
 char password[32];
 int counter = 0;
@@ -44,8 +47,13 @@ void onWebSocketEvent(uint8_t num,
                 }
                 case WStype_TEXT: // Service text message from the client
                         sprintf(cmd_str,"%s",payload);
-                        if (debug_mode>0) Serial.printf("[%u] Send:(%d) %s\n", num, strlen(cmd_str),cmd_str);
-                        ret = TITANCommandReply(cmd_str,reply_str);
+                        if (cmd_str[0] == '@') {
+                          ret = TITANCommandReply(cmd_str,reply_str);
+                          if (debug_mode>0) Serial.printf("[%u] Reply:(%d) %s\n", num, strlen(reply_str),reply_str);
+                        }
+                        else {
+                          parse(cmd_str);
+                        }
                         //sprintf(reply_str,"#01:EX=%ld;VX=506.85;POSD=2997243;VPROF=500;MST=0x5;CURQA=0.0102675;CURQD=0.0558196;CURDD=-0.158617;DIN=0x0;DOUT=0x0;LED=1;RGB=4",++templ);
                         if (debug_mode>0) Serial.printf("[%u] Reply:(%d) %s\n", num, strlen(reply_str),reply_str);
                         webSocket.sendTXT(num, reply_str);
@@ -163,6 +171,7 @@ void setup() {
               // Connect to WiFi access point
               Serial.printf("Connecting %s:%s ",ssid,password);
               WiFi.begin(ssid, password);
+//              WiFi.begin(DEBUG_SSID, DEBUG_PASS);
               ret =1;
               while (ret<10){ //*** Check connection to WiFi access point
                 if ( WiFi.status() == WL_CONNECTED ) {
