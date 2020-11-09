@@ -3,8 +3,9 @@
 
 #define LED_BUILTIN 13
 
-#define DEBUG_SSID "reel"
-#define DEBUG_PASS "ucr201011"
+#define USING_FIXED_SSID
+#define DEBUG_SSID "KT_GiGA_2G_Wave2_F763"
+#define DEBUG_PASS "0ahebzh872"
 
 char ssid[32];
 char password[32];
@@ -170,8 +171,11 @@ void setup() {
               
               // Connect to WiFi access point
               Serial.printf("Connecting %s:%s ",ssid,password);
+#ifdef USING_FIXED_SSID
+              WiFi.begin(DEBUG_SSID, DEBUG_PASS);
+#else
               WiFi.begin(ssid, password);
-//              WiFi.begin(DEBUG_SSID, DEBUG_PASS);
+#endif
               ret =1;
               while (ret<10){ //*** Check connection to WiFi access point
                 if ( WiFi.status() == WL_CONNECTED ) {
